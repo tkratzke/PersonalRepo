@@ -1,0 +1,20 @@
+C:\Users\tkrat\OpenJDK27\jdk-27\bin\javaw.exe
+-XX:+ShowCodeDetailsInExceptionMessages
+-agentlib:jdwp=transport=dt_socket,suspend=y,address=localhost:56026 "-javaagent:C:\Users\tkrat\eclipse\jee-2026-06\eclipse\configuration\org.eclipse.osgi\1672\0\.cp\lib\javaagent-shaded.jar"
+-Dfile.encoding=UTF-8
+-Dstdout.encoding=UTF-8
+-Dstderr.encoding=UTF-8
+-classpath " \
+C:\Users\tkrat\git\2026SepRepo\personal\linearSystemGenerator\target\classes; \
+C:\Users\tkrat\git\2026SepRepo\personal\advMath\target\classes; \
+C:\Users\tkrat\git\2026SepRepo\utilModules\usingMathLibs\target\classes; \
+C:\Users\tkrat\.m2\repository\jsc\jsc\1.0\jsc-1.0.jar; \
+C:\Users\tkrat\.m2\repository\gov\nist\math\jama\1.0.3\jama-1.0.3.jar; \
+C:\Users\tkrat\git\2026SepRepo\utilModules\usingCommons\target\classes; \
+C:\Users\tkrat\.m2\repository\org\apache\logging\log4j\log4j-slf4j-impl\2.26.1\log4j-slf4j-impl-2.26.1.jar; \
+C:\Users\tkrat\.m2\repository\org\apache\logging\log4j\log4j-api\2.26.1\log4j-api-2.26.1.jar; \
+C:\Users\tkrat\.m2\repository\org\slf4j\slf4j-api\1.7.36\slf4j-api-1.7.36.jar; \
+C:\Users\tkrat\.m2\repository\org\apache\logging\log4j\log4j-core\2.26.1\log4j-core-2.26.1.jar; \
+C:\Users\tkrat\.m2\repository\org\apache\commons\commons-math3\3.6.1\commons-math3-3.6.1.jar; \
+C:\Users\tkrat\.m2\repository\commons-io\commons-io\2.22.0\commons-io-2.22.0.jar" \
+com.skagit.linearSystemGenerator.LinearSystemGenerator

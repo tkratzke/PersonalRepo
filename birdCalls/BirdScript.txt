@@ -1,0 +1,10 @@
+copy /b "C:\Users\tkrat\OneDrive\Documents\Personal\BirdCallTests\34BirdCalls\mp3\Practice.mp3" /b +
+"C:\Users\tkrat\OneDrive\Documents\Personal\BirdCallTests\34BirdCalls\mp3\Calls\02_AmericanGoldfinch.mp3" /b +
+"C:\Users\tkrat\OneDrive\Documents\Personal\BirdCallTests\34BirdCalls\mp3\Names\02_AmericanGoldfinch.mp3" /b +
+"C:\Users\tkrat\OneDrive\Documents\Personal\BirdCallTests\34BirdCalls\mp3\Test.mp3" /b +
+"C:\Users\tkrat\OneDrive\Documents\Personal\BirdCallTests\34BirdCalls\mp3\Calls\02_AmericanGoldfinch.mp3" /b +
+"C:\Users\tkrat\OneDrive\Documents\Personal\BirdCallTests\34BirdCalls\mp3\Names\02_AmericanGoldfinch.mp3" /b +
+"C:\Users\tkrat\OneDrive\Documents\Personal\BirdCallTests\34BirdCalls\mp3\Calls\02_AmericanGoldfinch.mp3" /b +
+"C:\Users\tkrat\OneDrive\Documents\Personal\BirdCallTests\34BirdCalls\mp3\Names\02_AmericanGoldfinch.mp3" /b
+"C:\Users\tkrat\OneDrive\Documents\Personal\BirdCallTests\NPrac1_NTest2_NEx0_Seed0_2_LvlShffl\NPrac1_NTest2_NEx0_Seed0_2_LvlShffl.mp3" /b >nul 2>&1
+pause
