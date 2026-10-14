@@ -160,7 +160,7 @@ public class Win10FileComparator implements Comparator<File> {
 			"filename3.jpg", //
 	};
 
-	public static void main(final String[] args) {
+	public static void main0(final String[] args) {
 		final File testDir = new File("C:\\Users\\tkrat\\Documents\\TestFolder");
 		final int nTestNames = _TestNames.length;
 		final File testFile = new File(testDir, "testFile");
@@ -172,7 +172,7 @@ public class Win10FileComparator implements Comparator<File> {
 		}
 	}
 
-	public static void main0(final String[] args) {
+	public static void main(final String[] args) {
 
 		/** Shuffle. */
 		final int nTestNames = _TestNames.length;
@@ -198,7 +198,7 @@ public class Win10FileComparator implements Comparator<File> {
 		final FileFilter jpgFilter = new FileFilter() {
 
 			@Override
-			public boolean accept(final File f) {
+			public boolean accept(final File f) { 
 				return "jpg".equalsIgnoreCase(FilenameUtils.getExtension(f.getAbsolutePath()));
 			}
 		};
