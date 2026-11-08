@@ -1,0 +1,19 @@
+For Infeasible
+	Something is rotten in the state of Denmark.
+	These don't work out.
+	Good try, ... but it's wrong.
+	Ooh, try again!
+	Nope; bet you can find an equation for which your guesses don't work.
+	Tough subject, but I bet you can get it if you try.
+	I bet you can get this if you try again.
+	Wrong.  But now be persistent and get it right!
+
+For Solved
+	You got it!
+	That's what I'm talking about!
+	Ready for a tougher problem?
+	Good job!
+	Moving on to harder problems.
+	Good thinking!
+	Careful thought paid off.
+	Right!  On to the next one!

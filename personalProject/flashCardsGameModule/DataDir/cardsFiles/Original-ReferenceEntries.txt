@@ -1,0 +1,45 @@
+ ! Single Vowels and diphthongs/triphthongs:
+450.	eo                                          	(e)gg + (o)uch
+451.	êu                                          	(e)gg + (oo)ps
+452.	ui                                          	(ooey) gooey
+453.	ay                                          	IE aye-ee
+454.	ô                                           	oh
+455.	ơ                                           	uh
+456.	âu                                          	oh
+457.	â                                           	B(u)n
+458.	e                                           	L(e)t
+459.	i                                           	B(ee)
+460.	o                                           	(aw)e
+461.	ia                                          	ee-uh
+462.	oi                                          	B(oy)
+463.	ê                                           	St(ay)
+464.	u                                           	C(oo)l
+465.	ây                                          	St(ay)
+466.	a                                           	F(a)ther
+467.	ă                                           	(a)t
+468.	ư                                           	uhoo
+469.	iê                                          	ee-(e)gg
+470.	ơi                                          	(u)gl(y)
+471.	ươ                                          	(u)gh-uh
+472.	ưa                                          	(u)gh-uh
+473.	uô                                          	C(oo)l-oh
+474.	ua                                          	C(oo)l-uh
+475.	ôi                                          	Ann(oyi)ng
+476.	oai                                         	(aw)e-I-ee
+477.	oe                                          	(aw)e-a(hhh)
+478.	uê                                          	C(oo)l-e(gg)
+479.	uy                                          	C(oo)l-S(ee)d
+480.	uôi                                         	C(oo)l-Oh-S(ee)d
+481.	ươi                                         	(u)gh-uhh-S(ee)d
+482.	iêu                                         	ee-o(h)
+483.	oa                                          	(aw)e-I
+484.	ai                                          	I or eye
+485.	au                                          	(ow)l (more focus on u than with ao)
+486.	ao                                          	(ou)ch (more focus on a than with au)
+! Types of Clues and Answers
+! 564.	mùa xuân                                    	%0000-spring%
+! 565.	spring                                      	%0000-spring%
+! 566.	%0000-spring%                                	mùa xuân
+! 567.	spring                                      	mùa xuân
+! 568.	%0000-spring% (to Eng)                       	spring
+! 569.	mùa xuân (to Eng)                           	spring

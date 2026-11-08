@@ -1,0 +1,13 @@
+Body A
+(Footnote 1: 
+Line-of-footnote A
+<Continue Footnote> Line-of-footnote AA
+
+Body B
+<Chapter> Body C
+(Footnote 2: Line-of-footnote B
+Line-of-footnote C
+Line-of-footnote D
+<Continue Footnote> Line-of-footnote E
+
+Text D
