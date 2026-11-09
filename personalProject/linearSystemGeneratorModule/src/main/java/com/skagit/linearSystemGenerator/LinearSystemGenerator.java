@@ -255,15 +255,19 @@ public class LinearSystemGenerator {
 					_activeLinearSystem.switchVbls(command);
 					break;
 				case TELL:
-					goForward = false;
 				case SET:
 				case UNSET:
+					/** Both doTell and setOrUnset will restore they system if infeasible. */
+					final LsStatus lsStatus;
 					if (commandType == CommandType.TELL) {
-						_activeLinearSystem.doTell(command);
+						lsStatus = _activeLinearSystem.doTell(command);
+						goForward = false;
 					} else {
-						_activeLinearSystem.doSetOrUnset(command);
+						lsStatus = _activeLinearSystem.setOrUnset(command);
+						if (goForward && lsStatus == LsStatus.INFEASIBLE) {
+							goForward = false;
+						}
 					}
-					final LsStatus lsStatus = _activeLinearSystem.getStatus();
 					switch (lsStatus) {
 					case FEASIBLE:
 						break;
@@ -275,10 +279,7 @@ public class LinearSystemGenerator {
 						break;
 					case INFEASIBLE:
 					default:
-						_errPs.printf("""
-								%s  Back off some of your assignments by using
-								something like \"x =\" for one of your guessed values.
-								""", selectRemark(_rmb.getRng(), lsStatus));
+						_errPs.print(selectRemark(_rmb.getRng(), lsStatus));
 						goForward = false;
 						break;
 					}

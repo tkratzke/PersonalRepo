@@ -473,7 +473,7 @@ public class LinearSystem {
 		return (j < 0 || j >= _vblNames.length) ? null : _vblNames[j];
 	}
 
-	public LsStatus getStatus() {
+	public LsStatus getLsStatus() {
 		final int m = _coefs.length, n = _coefs[0].length;
 		final BitSet realVbls = new BitSet(n);
 		for (int j = 0; j < n; ++j) {
@@ -634,12 +634,12 @@ public class LinearSystem {
 		_permForVbls[kB] = jA;
 	}
 
-	void doTell(final Command command) {
+	LsStatus doTell(final Command command) {
 		final int m = _coefs.length, n = _coefs[0].length;
 		final int j0 = command._vbl0Idx;
 
 		final MyFraction oldGuess = _guessedValues[j0];
-		doSetOrUnset(j0, null);
+		setOrUnset(j0, null);
 		final BitSet realVbls = new BitSet(n);
 		realVbls.clear();
 		for (int j = 0; j < n; ++j) {
@@ -679,21 +679,34 @@ public class LinearSystem {
 		final double[][] xRows = paqLu.solve(rhsRows);
 		final double d = xRows[keyJ][0];
 		if (Double.isFinite(d)) {
-			doSetOrUnset(j0, new MyFraction(d, LinearSystemStatics._ThresholdForFraction));
-		} else {
-			doSetOrUnset(j0, oldGuess);
+			/**
+			 * Found a legitimate value for j. Leave it set and we are either FEASIBLE or
+			 * SOLVED.
+			 */
+			setOrUnset(j0, new MyFraction(d, LinearSystemStatics._ThresholdForFraction));
+			for (int j = 0; j < n; ++j) {
+				if (_guessedValues[j] == null) {
+					return LsStatus.FEASIBLE;
+				}
+			}
+			return LsStatus.SOLVED;
 		}
+		/** Undo the try and return INFEASIBLE. */
+		setOrUnset(j0, oldGuess);
+		return LsStatus.INFEASIBLE;
 	}
 
-	void doSetOrUnset(final Command command) {
-		doSetOrUnset(command._vbl0Idx, command._frctn);
+	LsStatus setOrUnset(final Command command) {
+		return setOrUnset(command._vbl0Idx, command._frctn);
 	}
 
-	private void doSetOrUnset(final int j, final MyFraction frctn) {
+	private LsStatus setOrUnset(final int j, final MyFraction frctn) {
 		final int m = _coefs.length;
 		final MyFraction delta = new MyFraction(0L, 1L);
-		if (_guessedValues[j] != null) {
-			delta.add(_guessedValues[j], /* operateOnSelf= */true);
+		final MyFraction oldGuess = _guessedValues[j];
+
+		if (oldGuess != null) {
+			delta.add(oldGuess, /* operateOnSelf= */true);
 		}
 		if (frctn != null) {
 			delta.subtract(frctn, /* operateOnSelf= */true);
@@ -702,6 +715,18 @@ public class LinearSystem {
 			_rhs[i].add(delta.multiply(_coefs[i][j], /* operateOnSelf= */false), /* operateOnSelf= */true);
 		}
 		_guessedValues[j] = frctn;
+		/**
+		 * If frctn is not null, we might be INFEASIBLE and we'll back off. If it is
+		 * null, we know that we are FEASIBLE and not SOLVED.
+		 */
+		if (frctn != null) {
+			final LsStatus lsStatus = getLsStatus();
+			if (lsStatus == LsStatus.INFEASIBLE) {
+				setOrUnset(j, oldGuess);
+			}
+			return lsStatus;
+		}
+		return LsStatus.FEASIBLE;
 	}
 
 }
