@@ -5,6 +5,7 @@ import com.skagit.utils.MyFraction;
 class LinearSystemStatics {
 	final private static String _EqutnNamesString = "ABCDEFGHIJKLMN";
 	final private static String _VblNamesString = "xyzwuvpqrstabc";
+	final static double _ThresholdForFraction = 1.0e-4;
 
 	static String getNominalEqutnName(final int m, final int i) {
 		return getNominalName(_EqutnNamesString, m, i);
@@ -72,7 +73,7 @@ class LinearSystemStatics {
 		final int n = d.length;
 		final MyFraction[] a = new MyFraction[n];
 		for (int j = 0; j < n; ++j) {
-			a[j] = new MyFraction(d[j]);
+			a[j] = new MyFraction(d[j], _ThresholdForFraction);
 		}
 		return a;
 	}

@@ -5,6 +5,7 @@ public enum Operator {
 	SUBTRACT("-="), //
 	MULTIPLY("*="), //
 	DIVIDE("/="), //
+	TELL("=?"), //
 	SET("="), //
 	ZERO("::"), //
 	SWITCH("<->");

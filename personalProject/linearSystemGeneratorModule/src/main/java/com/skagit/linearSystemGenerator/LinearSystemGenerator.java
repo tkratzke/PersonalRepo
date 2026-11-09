@@ -77,8 +77,7 @@ public class LinearSystemGenerator {
 		OuterLoop: for (final ResourcesLister0.CpEntryAndRelativePath cpEntryAndRelativePath : cpEntryAndRelativePaths0) {
 			String relativePath = cpEntryAndRelativePath._relativePath;
 			relativePath = "/" + relativePath.replace('\\', '/');
-			try (InputStream in = clazz.getResourceAsStream(relativePath);
-					BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+			try (InputStream in = clazz.getResourceAsStream(relativePath)) {
 				properties.load(in);
 				if (m <= 0) {
 					m = Integer.parseInt((String) properties.get("m"));
@@ -90,7 +89,6 @@ public class LinearSystemGenerator {
 					break OuterLoop;
 				}
 			} catch (final IOException e) {
-				/** Not concerned. */
 			}
 		}
 		if (m >= 0 && typeOfProblem != null) {
@@ -222,7 +220,8 @@ public class LinearSystemGenerator {
 				continue;
 			}
 			if (command != null) {
-				switch (command._commandType) {
+				final CommandType commandType = command._commandType;
+				switch (commandType) {
 				case ADD:
 				case SUBTRACT:
 					_activeLinearSystem.addOrSubtract(command);
@@ -255,9 +254,15 @@ public class LinearSystemGenerator {
 				case SWITCH_VBLS:
 					_activeLinearSystem.switchVbls(command);
 					break;
+				case TELL:
+					goForward = false;
 				case SET:
 				case UNSET:
-					_activeLinearSystem.set(command);
+					if (commandType == CommandType.TELL) {
+						_activeLinearSystem.doTell(command);
+					} else {
+						_activeLinearSystem.doSetOrUnset(command);
+					}
 					final LsStatus lsStatus = _activeLinearSystem.getStatus();
 					switch (lsStatus) {
 					case FEASIBLE:

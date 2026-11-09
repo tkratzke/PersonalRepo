@@ -12,6 +12,7 @@ public enum CommandType {
 	SWITCH_VBLS(Operator.SWITCH, "Switch vbls x and vbl y", "x <-> y"), //
 	SET(Operator.SET, "Set x to 7", "x = 7"), //
 	UNSET(Operator.SET, "Unset x", "x ="), //
+	TELL(Operator.SET, "Tell me what x is", "x =?"), //
 	QUIT(null, "Quit", "Quit"), //
 	HELP(null, "Help", "Help");//
 
@@ -29,6 +30,7 @@ public enum CommandType {
 			DIVIDE, //
 			SET, //
 			UNSET, //
+			TELL, //
 			ZERO, //
 			SWITCH_EQUTNS, //
 			SWITCH_VBLS, //

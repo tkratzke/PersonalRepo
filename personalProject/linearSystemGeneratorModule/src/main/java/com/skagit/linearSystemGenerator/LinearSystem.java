@@ -27,7 +27,7 @@ public class LinearSystem {
 	public LinearSystem(final double[][] dblCoefs, final double[] dblCorrectValues, final Random r) {
 		final MyFraction[][] coefs0 = LinearSystemStatics.toFractions(dblCoefs);
 		final MyFraction[] correctValues0 = LinearSystemStatics.toFractions(dblCorrectValues);
-		/** permute rows and collumns. */
+		/** permute rows and columns. */
 		final int m = dblCoefs.length, n = dblCoefs[0].length;
 		final int[] permForEqutns = PermutationTools.randomPermutation(m, r);
 		final int[] permForVbls = PermutationTools.randomPermutation(n, r);
@@ -110,7 +110,7 @@ public class LinearSystem {
 		_permForVbls = CombinatoricTools.getInitial(n);
 	}
 
-	PaqLu getRankAndDeterminant() {
+	PaqLu getPaqLu() {
 		final LinearSystem permuted = permute();
 
 		final MyFraction[][] coefs = permuted._coefs;
@@ -168,35 +168,8 @@ public class LinearSystem {
 			return this;
 		}
 
-		/** Permute _equtnNames, _coefs, and _rhs. */
-		final String[] equtnNames = new String[m];
-		final MyFraction[][] coefs = new MyFraction[m][];
-		final MyFraction[] rhs = new MyFraction[m];
-		for (int i = 0; i < m; ++i) {
-			equtnNames[i] = _equtnNames[_permForEqutns[i]];
-			coefs[i] = new MyFraction[n];
-			for (int j = 0; j < n; ++j) {
-				coefs[i][j] = _coefs[_permForEqutns[i]][_permForVbls[j]];
-			}
-			rhs[i] = _rhs[_permForEqutns[i]];
-		}
-		/** Permute _vblNames, _correctValues, and _guessedValues. */
-		final String[] vblNames = new String[n];
-		final MyFraction[] correctValues = new MyFraction[n];
-		final MyFraction[] guessedValues = new MyFraction[n];
-		for (int j = 0; j < n; ++j) {
-			vblNames[j] = _vblNames[_permForVbls[j]];
-			correctValues[j] = _correctValues[_permForVbls[j]];
-			guessedValues[j] = _guessedValues[_permForVbls[j]];
-		}
-		return new LinearSystem(equtnNames, coefs, /* permForEqutns= */null, rhs, vblNames, correctValues,
-				guessedValues, /* permForVbls= */null);
-	}
-
-	void doSetOrUnset(final Command command) {
-		final int j = command._vbl0Idx;
-		final MyFraction frctn0 = command._frctn;
-		_guessedValues[j] = frctn0 == null ? null : frctn0;
+		return new LinearSystem(_equtnNames, _coefs, _permForEqutns, _rhs, _vblNames, _correctValues, _guessedValues,
+				_permForVbls);
 	}
 
 	boolean isSolved() {
@@ -460,7 +433,7 @@ public class LinearSystem {
 			boolean doneIntro = false;
 			for (int j = 0; j < n; ++j) {
 				if (!doneIntro) {
-					s.append("\n" + (doGuesses ? "Guessed values:" : "Correct values:"));
+					s.append("\n" + (doGuesses ? "Your values so far:" : "Correct values:"));
 					doneIntro = true;
 				}
 				if (doGuesses && _guessedValues[j] != null) {
@@ -661,23 +634,74 @@ public class LinearSystem {
 		_permForVbls[kB] = jA;
 	}
 
-	void set(final Command command) {
+	void doTell(final Command command) {
+		final int m = _coefs.length, n = _coefs[0].length;
+		final int j0 = command._vbl0Idx;
+
+		final MyFraction oldGuess = _guessedValues[j0];
+		doSetOrUnset(j0, null);
+		final BitSet realVbls = new BitSet(n);
+		realVbls.clear();
+		for (int j = 0; j < n; ++j) {
+			realVbls.set(j, _guessedValues[j] == null);
+		}
+		final int nRealVbls = realVbls.cardinality();
+		int keyJ = -1;
+		for (int jOrig = realVbls.nextSetBit(0), j = 0; jOrig >= 0; jOrig = realVbls.nextSetBit(jOrig + 1), ++j) {
+			if (jOrig == j0) {
+				keyJ = j;
+			}
+		}
+
+		final BitSet realEqutns = new BitSet(m);
+		realEqutns.clear();
+		for (int i = 0; i < m; ++i) {
+			for (int j = realVbls.nextSetBit(0); j >= 0; j = realVbls.nextSetBit(j + 1)) {
+				if (_coefs[i][j]._num != 0) {
+					realEqutns.set(i);
+					break;
+				}
+			}
+		}
+		final int mRealEqutns = realEqutns.cardinality();
+
+		final MyFraction[][] realCoefs = new MyFraction[mRealEqutns][];
+		final double[][] rhsRows = new double[mRealEqutns][];
+		for (int iReal = realEqutns.nextSetBit(0), i = 0; iReal >= 0; iReal = realEqutns.nextSetBit(iReal + 1), ++i) {
+			realCoefs[i] = new MyFraction[nRealVbls];
+			for (int jOrig = realVbls.nextSetBit(0), j = 0; jOrig >= 0; jOrig = realVbls.nextSetBit(jOrig + 1), ++j) {
+				realCoefs[i][j] = _coefs[iReal][jOrig];
+			}
+			rhsRows[i] = new double[1];
+			rhsRows[i][0] = _rhs[iReal].toDouble();
+		}
+		final PaqLu paqLu = new PaqLu(LinearSystemStatics.toDouble(realCoefs), PaqLu.Pivoting.Full);
+		final double[][] xRows = paqLu.solve(rhsRows);
+		final double d = xRows[keyJ][0];
+		if (Double.isFinite(d)) {
+			doSetOrUnset(j0, new MyFraction(d, LinearSystemStatics._ThresholdForFraction));
+		} else {
+			doSetOrUnset(j0, oldGuess);
+		}
+	}
+
+	void doSetOrUnset(final Command command) {
+		doSetOrUnset(command._vbl0Idx, command._frctn);
+	}
+
+	private void doSetOrUnset(final int j, final MyFraction frctn) {
 		final int m = _coefs.length;
-		final int j = command._vbl0Idx;
-		/** Adjust the RHS. */
-		final MyFraction oldGuess = _guessedValues[j];
-		if (oldGuess != null) {
-			for (int i = 0; i < m; ++i) {
-				_rhs[i].add(oldGuess.multiply(_coefs[i][j], /* operateOnSelf= */false), /* operateOnSelf= */true);
-			}
+		final MyFraction delta = new MyFraction(0L, 1L);
+		if (_guessedValues[j] != null) {
+			delta.add(_guessedValues[j], /* operateOnSelf= */true);
 		}
-		final MyFraction newGuess = command._frctn;
-		if (newGuess != null) {
-			for (int i = 0; i < m; ++i) {
-				_rhs[i].subtract(newGuess.multiply(_coefs[i][j], /* operateOnSelf= */false), /* operateOnSelf= */true);
-			}
+		if (frctn != null) {
+			delta.subtract(frctn, /* operateOnSelf= */true);
 		}
-		_guessedValues[j] = newGuess;
+		for (int i = 0; i < m; ++i) {
+			_rhs[i].add(delta.multiply(_coefs[i][j], /* operateOnSelf= */false), /* operateOnSelf= */true);
+		}
+		_guessedValues[j] = frctn;
 	}
 
 }

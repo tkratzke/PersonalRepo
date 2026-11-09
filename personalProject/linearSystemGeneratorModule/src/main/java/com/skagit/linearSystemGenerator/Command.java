@@ -118,10 +118,10 @@ public class Command {
 			return;
 		}
 
-		/** If there is nothing past the operator, this must be "x =". */
+		/** If there is nothing past the operator, this must be "x =" or "x =?". */
 		if (afterOperator.length() == 0) {
-			if (operator == Operator.SET && vbl0Idx >= 0) {
-				_commandType = CommandType.UNSET;
+			if ((operator == Operator.SET || operator == Operator.TELL) && vbl0Idx >= 0) {
+				_commandType = operator == Operator.SET ? CommandType.UNSET : CommandType.TELL;
 				_equtn0Idx = _equtn1Idx = -1;
 				_vbl0Idx = vbl0Idx;
 				_vbl1Idx = -1;
