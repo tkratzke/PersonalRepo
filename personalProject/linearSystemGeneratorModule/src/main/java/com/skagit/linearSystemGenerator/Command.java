@@ -34,7 +34,7 @@ public class Command {
 		if (_vbl1Idx >= 0) {
 			s.append(String.format(", Vbl1=%s", _linearSystem.getVblName(_vbl1Idx)));
 		}
-		if (_frctn != null) {
+		if (MyFraction.IsValid(_frctn)) {
 			s.append(String.format(", d0=%s", _frctn.getString(/* printFloat= */false)));
 		}
 		return s.toString();
@@ -136,7 +136,7 @@ public class Command {
 		}
 
 		/** If the rest is a number, it must be "x = 7, A *= 2, or A /= 2." */
-		MyFraction frctn = new MyFraction(afterOperator);
+		MyFraction frctn = MyFraction.getFraction(afterOperator);
 		if (MyFraction.IsValid(frctn)) {
 			switch (operator) {
 			case SET:
@@ -252,7 +252,7 @@ public class Command {
 			final String s = afterOperator.substring(k);
 			equtn1Idx = linearSystem.getEqutnIdx(s);
 			if (equtn1Idx >= 0) {
-				frctn = k == 0 ? new MyFraction(1, 1) : new MyFraction(afterOperator.substring(0, k));
+				frctn = k == 0 ? new MyFraction(1L, 1L) : MyFraction.getFraction(afterOperator.substring(0, k));
 				break;
 			}
 		}
