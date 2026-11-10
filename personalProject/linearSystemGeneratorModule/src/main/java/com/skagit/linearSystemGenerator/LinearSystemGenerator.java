@@ -272,6 +272,7 @@ public class LinearSystemGenerator {
 					case FEASIBLE:
 						break;
 					case SOLVED:
+						_ps.printf("\n%s\n", _activeLinearSystem.getString());
 						_ps.printf("\n%s  Try a new problem:", selectRemark(_rmb.getRng(), lsStatus));
 						difficulty = goForward ? difficulty.next() : difficulty.pvs();
 						_activeLinearSystem = generateLinearSystem(difficulty);

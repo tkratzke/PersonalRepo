@@ -229,7 +229,17 @@ public class LinearSystem {
 		final int mRealEqutns = realEqutns.cardinality();
 		final String[] equtnNames = permuted._equtnNames;
 		if (mRealEqutns == 0) {
-			return "";
+			/** Print guesses. */
+			final StringBuilder s = new StringBuilder();
+			boolean doneIntro = false;
+			for (int j = 0; j < n; ++j) {
+				if (!doneIntro) {
+					s.append("\nYour values:");
+					doneIntro = true;
+				}
+				s.append(String.format("\n%s = %s", _vblNames[j], _guessedValues[j].getString(/* printFloats= */true)));
+			}
+			return s.toString();
 		}
 
 		final String[] realEqutnNames = new String[mRealEqutns];
