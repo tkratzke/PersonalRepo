@@ -1,11 +1,133 @@
 package com.skagit.linearSystemGenerator;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Properties;
+
 import com.skagit.utils.MyFraction;
+import com.skagit.utils.ResourcesLister0;
+import com.skagit.utils.StaticUtilities;
 
 class LinearSystemStatics {
-	final private static String _EqutnNamesString = "ABCDEFGHIJKLMN";
-	final private static String _VblNamesString = "xyzwuvpqrstabc";
-	final static double _ThresholdForFraction = 1.0e-4;
+	final static long _InitialSeed;
+
+	final static int _LoMult;
+	final static int _HiMult;
+	final static int _LoNudge;
+	final static int _HiNudge;
+	final static double _ThresholdForFraction;
+
+	final static Difficulty _InitialDifficulty;
+	final static String _EqutnNamesString;
+	final static String _VblNamesString;
+	final static String[] _RemarksForInfeasible;
+	final static String[] _RemarksForSolved;
+
+	static {
+		final Class<?> clazz = StaticUtilities.getMyClass();
+		final Package pckg = clazz.getPackage();
+		final ArrayList<ResourcesLister0.CpEntryAndRelativePath> cpEntryAndRelativePaths1 = ResourcesLister0
+				.getCpEntryAndRelativePaths(pckg, "StartUp.properties", true, true);
+		final Properties properties = new Properties();
+		Integer initialM = null;
+		TypeOfProblem initialTypeOfProblem = null;
+		Long initialSeed = null;
+		Integer loMult = null;
+		Integer hiMult = null;
+		Integer loNudge = null;
+		Integer hiNudge = null;
+		String equtnNamesString = "ABCDEFGH";
+		String vblNamesString = "xyzwuvabc";
+		Double thresholdForFraction = null;
+
+		final ArrayList<String> forInfeasible = new ArrayList<>();
+		final ArrayList<String> forSolved = new ArrayList<>();
+		for (final ResourcesLister0.CpEntryAndRelativePath cpEntryAndRelativePath : cpEntryAndRelativePaths1) {
+			String relativePath = cpEntryAndRelativePath._relativePath;
+			relativePath = "/" + relativePath.replace('\\', '/');
+			try (InputStream in = clazz.getResourceAsStream(relativePath)) {
+				properties.load(in);
+				try {
+					initialSeed = Long.parseLong((String) properties.get("initialSeed"));
+				} catch (final NumberFormatException e) {
+				}
+				try {
+					loMult = Integer.parseInt((String) properties.get("loMult"));
+				} catch (final NumberFormatException e) {
+				}
+				try {
+					hiMult = Integer.parseInt((String) properties.get("hiMult"));
+				} catch (final NumberFormatException e) {
+				}
+				try {
+					loNudge = Integer.parseInt((String) properties.get("loNudge"));
+				} catch (final NumberFormatException e) {
+				}
+				try {
+					hiNudge = Integer.parseInt((String) properties.get("hiNudge"));
+				} catch (final NumberFormatException e) {
+				}
+				try {
+					thresholdForFraction = Double.parseDouble((String) properties.get("thresholdForFraction"));
+				} catch (final NumberFormatException e) {
+				}
+				try {
+					initialM = Integer.parseInt((String) properties.get("initialM"));
+					initialM = initialM <= 0 ? null : initialM;
+				} catch (final NumberFormatException e) {
+				}
+				initialTypeOfProblem = TypeOfProblem.valueOf(properties.getProperty("initialTypeOfProblem"));
+
+				final String equtnNamesString0 = properties.getProperty("equationNamesString");
+				if (equtnNamesString0 != null) {
+					equtnNamesString = equtnNamesString0;
+				}
+				final String vblNamesString0 = properties.getProperty("variableNamesString");
+				if (vblNamesString0 != null) {
+					vblNamesString = vblNamesString0;
+				}
+				final String sInfeasible = (String) properties.get("Infeasible");
+				if (sInfeasible != null) {
+					final String[] fields = sInfeasible.split("\\n+");
+					if (fields != null) {
+						forInfeasible.addAll(Arrays.asList(fields));
+					}
+				}
+				final String sSolved = (String) properties.get("Solved");
+				if (sSolved != null) {
+					final String[] fields = sSolved.split("\\n+");
+					if (fields != null) {
+						forSolved.addAll(Arrays.asList(fields));
+					}
+				}
+			} catch (final IOException e) {
+			}
+		}
+		_InitialSeed = initialSeed == null ? -1L : initialSeed;
+		_LoMult = loMult == null ? -2 : loMult;
+		_HiMult = hiMult == null ? 8 : hiMult;
+		_LoNudge = loNudge == null ? -3 : loNudge;
+		_HiNudge = hiNudge == null ? 7 : hiNudge;
+		_ThresholdForFraction = (thresholdForFraction != null && thresholdForFraction > 0d) ? thresholdForFraction
+				: 1.0e-3;
+		if (initialM == null || initialTypeOfProblem == null) {
+			initialM = 3;
+			initialTypeOfProblem = TypeOfProblem.TRI;
+		}
+		_InitialDifficulty = new Difficulty(initialM, initialTypeOfProblem);
+		_EqutnNamesString = equtnNamesString;
+		_VblNamesString = vblNamesString;
+		if (forInfeasible.isEmpty()) {
+			forInfeasible.add("This is not correct.");
+		}
+		if (forSolved.isEmpty()) {
+			forSolved.add("Finished this problem.");
+		}
+		_RemarksForInfeasible = forInfeasible.toArray(new String[forInfeasible.size()]);
+		_RemarksForSolved = forSolved.toArray(new String[forSolved.size()]);
+	}
 
 	static String getNominalEqutnName(final int m, final int i) {
 		return getNominalName(_EqutnNamesString, m, i);

@@ -7,6 +7,7 @@ import java.util.Random;
 import com.skagit.utils.CombinatoricTools;
 import com.skagit.utils.NumericalRoutines;
 import com.skagit.utils.PermutationTools;
+import com.skagit.utils.randomx.Randomx;
 
 public class RandomMatrixBuilder extends MitLinearAlgebraCore {
 
@@ -15,14 +16,18 @@ public class RandomMatrixBuilder extends MitLinearAlgebraCore {
 	final static int _LoNudge = -3;
 	final static int _HiNudge = 3;
 
-	final private Random _random;
+	final private Randomx _random;
 	final private int _loMult, _hiMult;
 	final private int _loNudge, _hiNudge;
 
 	public RandomMatrixBuilder(final long seed, final int loMult, final int hiMult, final int loNudge,
 			final int hiNudge) {
-		_random = new Random();
-		_random.setSeed(seed);
+		/** If seed == -1, use super random. */
+		if (seed == -1) {
+			_random = new Randomx(/* useCurrentTimeMs= */true);
+		} else {
+			_random = new Randomx(seed);
+		}
 		_loMult = loMult;
 		_hiMult = hiMult;
 		_loNudge = loNudge;

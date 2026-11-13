@@ -1,102 +1,14 @@
 package com.skagit.linearSystemGenerator;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.Properties;
 import java.util.Random;
 import java.util.Scanner;
 
 import com.skagit.advMath.mitLinearAlgebra.RandomMatrixBuilder;
-import com.skagit.utils.ResourcesLister0;
-import com.skagit.utils.StaticUtilities;
 import com.skagit.utils.StringUtilities;
 
 public class LinearSystemGenerator {
-
-	final private static String[] _ForInfeasible;
-
-	final private static String[] _ForSolved;
-
-	final private static Difficulty _InitialDifficulty;
-
-	static {
-		final Class<?> clazz = StaticUtilities.getMyClass();
-		final Package pckg = clazz.getPackage();
-		final ArrayList<ResourcesLister0.CpEntryAndRelativePath> cpEntryAndRelativePaths0 = ResourcesLister0
-				.getCpEntryAndRelativePaths(pckg, "Remarks.*\\.txt", true, true);
-		final ArrayList<String> forInfeasible = new ArrayList<>();
-		final ArrayList<String> forSolved = new ArrayList<>();
-		boolean onRight = true;
-		for (final ResourcesLister0.CpEntryAndRelativePath cpEntryAndRelativePath : cpEntryAndRelativePaths0) {
-			String relativePath = cpEntryAndRelativePath._relativePath;
-			relativePath = "/" + relativePath.replace('\\', '/');
-			try (InputStream in = clazz.getResourceAsStream(relativePath);
-					BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
-				String line;
-				while ((line = reader.readLine()) != null) {
-					line = line.trim();
-					final int lineLen = line.length();
-					if (lineLen == 0 || line.charAt(0) == '#') {
-						continue;
-					}
-					if ("For Infeasible".equalsIgnoreCase(line)) {
-						onRight = false;
-						continue;
-					}
-					if ("For Solved".equalsIgnoreCase(line)) {
-						onRight = true;
-						continue;
-					}
-					if (onRight) {
-						forSolved.add(line);
-					} else {
-						forInfeasible.add(line);
-					}
-				}
-			} catch (final IOException e) {
-				e.printStackTrace();
-			}
-		}
-		_ForInfeasible = forInfeasible.toArray(new String[forInfeasible.size()]);
-		_ForSolved = forSolved.toArray(new String[forSolved.size()]);
-	}
-
-	static {
-		final Class<?> clazz = StaticUtilities.getMyClass();
-		final Package pckg = clazz.getPackage();
-		final ArrayList<ResourcesLister0.CpEntryAndRelativePath> cpEntryAndRelativePaths0 = ResourcesLister0
-				.getCpEntryAndRelativePaths(pckg, "InitialDifficulty.properties", true, true);
-		final Properties properties = new Properties();
-		int m = -1;
-		TypeOfProblem typeOfProblem = null;
-		OuterLoop: for (final ResourcesLister0.CpEntryAndRelativePath cpEntryAndRelativePath : cpEntryAndRelativePaths0) {
-			String relativePath = cpEntryAndRelativePath._relativePath;
-			relativePath = "/" + relativePath.replace('\\', '/');
-			try (InputStream in = clazz.getResourceAsStream(relativePath)) {
-				properties.load(in);
-				if (m <= 0) {
-					m = Integer.parseInt((String) properties.get("m"));
-				}
-				if (typeOfProblem == null) {
-					typeOfProblem = TypeOfProblem.valueOf(properties.getProperty("typeOfProblem"));
-				}
-				if (m > 0 && typeOfProblem != null) {
-					break OuterLoop;
-				}
-			} catch (final IOException e) {
-			}
-		}
-		if (m >= 0 && typeOfProblem != null) {
-			_InitialDifficulty = new Difficulty(m, typeOfProblem);
-		} else {
-			_InitialDifficulty = new Difficulty(3, TypeOfProblem.TRI);
-		}
-	}
 
 	final private static String _Clmn0Hdr = "To do this";
 	final private static int _Clmn0HdrLen = _Clmn0Hdr.length();
@@ -138,10 +50,11 @@ public class LinearSystemGenerator {
 
 	private static String selectRemark(final Random r, final LsStatus lsStatus) {
 		if (lsStatus == LsStatus.SOLVED) {
-			return _ForSolved[r.nextInt(_ForSolved.length)];
+			return LinearSystemStatics._RemarksForSolved[r.nextInt(LinearSystemStatics._RemarksForSolved.length)];
 		}
 		if (lsStatus == LsStatus.INFEASIBLE) {
-			return _ForInfeasible[r.nextInt(_ForInfeasible.length)];
+			return LinearSystemStatics._RemarksForInfeasible[r
+					.nextInt(LinearSystemStatics._RemarksForInfeasible.length)];
 		}
 		return "";
 	}
@@ -156,7 +69,7 @@ public class LinearSystemGenerator {
 	Scanner _sysInScanner;
 	LinearSystem _activeLinearSystem;
 
-	public LinearSystemGenerator(final int seed, final int loMult, final int hiMult, final int loNudge,
+	public LinearSystemGenerator(final long seed, final int loMult, final int hiMult, final int loNudge,
 			final int hiNudge, final Scanner sysInScanner) {
 		_loNudge = loNudge;
 		_hiNudge = hiNudge;
@@ -196,7 +109,7 @@ public class LinearSystemGenerator {
 		EnumSet<CommandType> toComment = CommandType._AllCommandTypes;
 		boolean goForward = true;
 		_activeLinearSystem = null;
-		Difficulty difficulty = _InitialDifficulty;
+		Difficulty difficulty = LinearSystemStatics._InitialDifficulty;
 		for (;;) {
 			if (_activeLinearSystem == null) {
 				_activeLinearSystem = generateLinearSystem(difficulty);
@@ -293,7 +206,13 @@ public class LinearSystemGenerator {
 
 	public static void main(final String[] args) {
 		try (Scanner sysInScanner = new Scanner(System.in)) {
-			final LinearSystemGenerator lsg = new LinearSystemGenerator(10291953, -2, 8, -3, 7, sysInScanner);
+			final long initialSeed = LinearSystemStatics._InitialSeed;
+			final int loMult = LinearSystemStatics._LoMult;
+			final int hiMult = LinearSystemStatics._HiMult;
+			final int loNudge = LinearSystemStatics._LoNudge;
+			final int hiNudge = LinearSystemStatics._HiNudge;
+			final LinearSystemGenerator lsg = new LinearSystemGenerator(initialSeed, loMult, hiMult, loNudge, hiNudge,
+					sysInScanner);
 			lsg.mainLoop();
 			lsg._ps.println();
 			lsg._ps.println("Exiting Program");
