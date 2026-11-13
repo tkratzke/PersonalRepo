@@ -102,7 +102,7 @@ public class LinearSystemGenerator {
 	final private static int _Clmn0HdrLen = _Clmn0Hdr.length();
 	final private static String _Clmn1Hdr = "Enter this";
 	final private static int _Clmn1HdrLen = _Clmn1Hdr.length();
-	final private static String _StringBetweenClmns = "     ";
+	final private static String _StringBetweenClmns = "   ";
 
 	private static String getHelpString(final EnumSet<CommandType> toComment, final TypeOfProblem typeOfProblem) {
 		if (toComment.isEmpty()) {
@@ -122,13 +122,13 @@ public class LinearSystemGenerator {
 		if (rtPad0 > 0) {
 			fullLtHdr += StringUtilities.padRight("", rtPad0);
 		}
-		final StringBuilder s = new StringBuilder("\t").append(fullLtHdr).append(_StringBetweenClmns);
+		final StringBuilder s = new StringBuilder("  ").append(fullLtHdr).append(_StringBetweenClmns);
 		final int ltPad1 = (clmn1Len - _Clmn1HdrLen) / 2;
 		final String fullRtHdr = (ltPad1 > 0 ? StringUtilities.padLeft("", ltPad1) : "") + _Clmn1Hdr;
 		s.append(fullRtHdr);
 		for (final CommandType commandType : toComment) {
 			if (typeOfProblem != TypeOfProblem.FORBID_ZERO_OUT || commandType._operator != Operator.ZERO) {
-				final String f = "\n\t%-" + clmn0Len + "s%s%s";
+				final String f = "\n  %-" + clmn0Len + "s%s%s";
 				s.append(String.format(f, commandType._englishExample, _StringBetweenClmns,
 						commandType._commandExample));
 			}
@@ -180,12 +180,9 @@ public class LinearSystemGenerator {
 			n = m;
 			break;
 		case ONE_EXTRA:
-			n = m + 1;
-			break;
-		case TWO_EXTRA:
 		case FORBID_ZERO_OUT:
 		default:
-			n = m + 2;
+			n = m + 1;
 			break;
 		}
 		final double[][] coefs = _rmb.buildMatrix(m, n, /* indClmnsArray= */null, upperTriangular);
@@ -204,8 +201,6 @@ public class LinearSystemGenerator {
 			if (_activeLinearSystem == null) {
 				_activeLinearSystem = generateLinearSystem(difficulty);
 				goForward = true;
-			} else {
-				_ps.print("\n");
 			}
 			_ps.printf("%s", getHelpString(toComment, difficulty._typeOfProblem));
 			if (toComment == CommandType._AllCommandTypes) {

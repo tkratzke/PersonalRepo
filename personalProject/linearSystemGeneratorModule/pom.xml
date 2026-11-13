@@ -1,51 +1,14 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <parent>
-    <groupId>com.skagit</groupId>
-    <artifactId>personalProject</artifactId>
-    <version>${revision}</version>
-  </parent>
-  <artifactId>linearSystemGeneratorModule</artifactId>
-  <name>linearSystemGeneratorModule</name>
-  
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>com.akathist.maven.plugins.launch4j</groupId>
-				<artifactId>launch4j-maven-plugin</artifactId>
-				<version>2.7.0</version> <!-- use latest stable -->
-				<executions>
-					<execution>
-						<id>l4j-clui</id>
-						<phase>package</phase>
-						<goals>
-							<goal>launch4j</goal>
-						</goals>
-						<configuration>
-							<outfile>target/linearSystemGenerator.exe</outfile>
-							<jar>
-								target/myapp-${project.version}-jar-with-dependencies.jar</jar>
-							<mainClass>com.skagit.linearSystemGenerator.LinearSystemGenerator</mainClass>
-							<jre>
-								<bundledJre64Bit>true</bundledJre64Bit>
-								<bundledJreAsFallback>true</bundledJreAsFallback>
-								<minVersion>21</minVersion>
-								<jdkPreference>preferJre</jdkPreference>
-							</jre>
-							<versionInfo>
-								<productName>LinearSystemGenerator</productName>
-								<fileVersion>${project.version}</fileVersion>
-								<txtFileVersion>${project.version}</txtFileVersion>
-								<fileDescription>${project.name}</fileDescription>
-								<copyright>None</copyright>
-								<internalName>LinearSystemGenerator</internalName>
-							</versionInfo>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-		</plugins>
-	</build>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>com.skagit</groupId>
+		<artifactId>personalProject</artifactId>
+		<version>${revision}</version>
+	</parent>
+	<artifactId>linearSystemGeneratorModule</artifactId>
+	<name>linearSystemGeneratorModule</name>
 
 	<dependencies>
 		<dependency>
@@ -54,7 +17,6 @@
 			<version>${revision}</version>
 		</dependency>
 	</dependencies>
-  
-  
-  
+
+
 </project>

@@ -736,7 +736,7 @@ public class FlashCardsGame {
 		/** No core myProperties can be modified. */
 	}
 
-	private long[] getChangeableLongPropertyValues() {
+	private static long[] getChangeableLongPropertyValues() {
 		return new long[0];
 	}
 

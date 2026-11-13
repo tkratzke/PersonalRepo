@@ -15,7 +15,7 @@
 	<properties>
 		<revision>1.0</revision>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<maven.compiler.release>25</maven.compiler.release>
+		<maven.compiler.release>27</maven.compiler.release>
 		<utils.Project.Version>1.0</utils.Project.Version>
 	</properties>
 
@@ -102,7 +102,6 @@
 	<modules>
 		<module>advMathModule</module>
 		<module>audioDirProcessorModule</module>
-		<module>BirdCallsModule</module>
 		<module>eulerModule</module>
 		<module>birdCallsModule</module>
 		<module>flashCardsGameModule</module>

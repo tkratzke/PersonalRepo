@@ -16,8 +16,6 @@ class Difficulty {
 		case FULL:
 			return new Difficulty(_nEquations, TypeOfProblem.ONE_EXTRA);
 		case ONE_EXTRA:
-			return new Difficulty(_nEquations, TypeOfProblem.TWO_EXTRA);
-		case TWO_EXTRA:
 			return new Difficulty(_nEquations, TypeOfProblem.FORBID_ZERO_OUT);
 		case FORBID_ZERO_OUT:
 		default:
@@ -33,11 +31,9 @@ class Difficulty {
 			return new Difficulty(_nEquations, TypeOfProblem.TRI);
 		case ONE_EXTRA:
 			return new Difficulty(_nEquations, TypeOfProblem.FULL);
-		case TWO_EXTRA:
-			return new Difficulty(_nEquations, TypeOfProblem.ONE_EXTRA);
 		case FORBID_ZERO_OUT:
 		default:
-			return new Difficulty(_nEquations, TypeOfProblem.TWO_EXTRA);
+			return new Difficulty(_nEquations, TypeOfProblem.ONE_EXTRA);
 		}
 	}
 }

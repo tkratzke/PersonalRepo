@@ -1,6 +1,7 @@
 package com.skagit.linearSystemGenerator;
 
 import com.skagit.utils.MyFraction;
+import com.skagit.utils.MyFractionStatics;
 
 public class Command {
 	public final LinearSystem _linearSystem;
@@ -136,7 +137,7 @@ public class Command {
 		}
 
 		/** If the rest is a number, it must be "x = 7, A *= 2, or A /= 2." */
-		MyFraction frctn = MyFraction.getFraction(afterOperator);
+		MyFraction frctn = MyFractionStatics.getFraction(afterOperator);
 		if (MyFraction.IsValid(frctn)) {
 			switch (operator) {
 			case SET:
@@ -252,7 +253,7 @@ public class Command {
 			final String s = afterOperator.substring(k);
 			equtn1Idx = linearSystem.getEqutnIdx(s);
 			if (equtn1Idx >= 0) {
-				frctn = k == 0 ? new MyFraction(1L, 1L) : MyFraction.getFraction(afterOperator.substring(0, k));
+				frctn = k == 0 ? new MyFraction(1L, 1L) : MyFractionStatics.getFraction(afterOperator.substring(0, k));
 				break;
 			}
 		}
