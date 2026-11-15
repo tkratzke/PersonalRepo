@@ -6,7 +6,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Properties;
 
+import com.skagit.advMath.mitLinearAlgebra.PaqLu;
+import com.skagit.advMath.mitLinearAlgebra.RandomMatrixBuilder;
+import com.skagit.utils.CombinatoricTools;
 import com.skagit.utils.MyFraction;
+import com.skagit.utils.NumericalRoutines;
 import com.skagit.utils.ResourcesLister0;
 import com.skagit.utils.StaticUtilities;
 
@@ -31,63 +35,105 @@ class LinearSystemStatics {
 		final ArrayList<ResourcesLister0.CpEntryAndRelativePath> cpEntryAndRelativePaths1 = ResourcesLister0
 				.getCpEntryAndRelativePaths(pckg, "StartUp.properties", true, true);
 		final Properties properties = new Properties();
-		Integer initialM = null;
-		TypeOfProblem initialTypeOfProblem = null;
+
+		/** Generating linear systems: */
 		Long initialSeed = null;
 		Integer loMult = null;
 		Integer hiMult = null;
 		Integer loNudge = null;
 		Integer hiNudge = null;
-		String equtnNamesString = "ABCDEFGH";
-		String vblNamesString = "xyzwuvabc";
+
+		/** Fraction determination: */
 		Double thresholdForFraction = null;
 
+		/** Difficulty parameters: */
+		Integer initialM = null;
+		Integer initialEzM = null;
+		Boolean initialExtraColumn = null;
+		Boolean initialSquareButSingular = null;
+
+		/** Equation and variable names. */
+		String equtnNamesString = null;
+		String vblNamesString = null;
+
+		/** The remarks for infeasible and solved problems. */
 		final ArrayList<String> forInfeasible = new ArrayList<>();
 		final ArrayList<String> forSolved = new ArrayList<>();
+
 		for (final ResourcesLister0.CpEntryAndRelativePath cpEntryAndRelativePath : cpEntryAndRelativePaths1) {
 			String relativePath = cpEntryAndRelativePath._relativePath;
 			relativePath = "/" + relativePath.replace('\\', '/');
 			try (InputStream in = clazz.getResourceAsStream(relativePath)) {
 				properties.load(in);
-				try {
-					initialSeed = Long.parseLong((String) properties.get("initialSeed"));
-				} catch (final NumberFormatException e) {
+				if (initialSeed == null) {
+					try {
+						initialSeed = Long.parseLong((String) properties.get("initialSeed"));
+					} catch (final NumberFormatException e) {
+					}
 				}
-				try {
-					loMult = Integer.parseInt((String) properties.get("loMult"));
-				} catch (final NumberFormatException e) {
+				if (loMult == null) {
+					try {
+						loMult = Integer.parseInt((String) properties.get("loMult"));
+					} catch (final NumberFormatException e) {
+					}
 				}
-				try {
-					hiMult = Integer.parseInt((String) properties.get("hiMult"));
-				} catch (final NumberFormatException e) {
+				if (hiMult == null) {
+					try {
+						hiMult = Integer.parseInt((String) properties.get("hiMult"));
+					} catch (final NumberFormatException e) {
+					}
 				}
-				try {
-					loNudge = Integer.parseInt((String) properties.get("loNudge"));
-				} catch (final NumberFormatException e) {
+				if (loNudge == null) {
+					try {
+						loNudge = Integer.parseInt((String) properties.get("loNudge"));
+					} catch (final NumberFormatException e) {
+					}
 				}
-				try {
-					hiNudge = Integer.parseInt((String) properties.get("hiNudge"));
-				} catch (final NumberFormatException e) {
+				if (hiNudge == null) {
+					try {
+						hiNudge = Integer.parseInt((String) properties.get("hiNudge"));
+					} catch (final NumberFormatException e) {
+					}
 				}
-				try {
-					thresholdForFraction = Double.parseDouble((String) properties.get("thresholdForFraction"));
-				} catch (final NumberFormatException e) {
+				if (thresholdForFraction == null) {
+					try {
+						thresholdForFraction = Double.parseDouble((String) properties.get("thresholdForFraction"));
+					} catch (final NumberFormatException e) {
+					}
 				}
-				try {
-					initialM = Integer.parseInt((String) properties.get("initialM"));
-					initialM = initialM <= 0 ? null : initialM;
-				} catch (final NumberFormatException e) {
+				if (initialM == null) {
+					try {
+						initialM = Integer.parseInt((String) properties.get("initialM"));
+					} catch (final NumberFormatException e) {
+					}
 				}
-				initialTypeOfProblem = TypeOfProblem.valueOf(properties.getProperty("initialTypeOfProblem"));
+				if (initialEzM == null) {
+					try {
+						initialEzM = Integer.parseInt(properties.getProperty("initialEzM"));
+					} catch (final NumberFormatException e) {
+					}
+				}
+				if (initialExtraColumn == null) {
+					try {
+						initialExtraColumn = Boolean.parseBoolean(properties.getProperty("initialExtraColumn"));
+					} catch (final NumberFormatException e) {
+					}
+				}
+				if (initialSquareButSingular == null) {
+					try {
+						initialSquareButSingular = Boolean
+								.parseBoolean(properties.getProperty("initialSquareButSingular"));
+					} catch (final NumberFormatException e) {
+					}
+				}
 
-				final String equtnNamesString0 = properties.getProperty("equationNamesString");
-				if (equtnNamesString0 != null) {
-					equtnNamesString = equtnNamesString0;
+				if (equtnNamesString == null) {
+					equtnNamesString = properties.getProperty("equationNamesString");
 				}
-				final String vblNamesString0 = properties.getProperty("variableNamesString");
-				if (vblNamesString0 != null) {
-					vblNamesString = vblNamesString0;
+				if (vblNamesString == null) {
+					vblNamesString = properties.getProperty("vblNamesString");
 				}
+
 				final String sInfeasible = (String) properties.get("Infeasible");
 				if (sInfeasible != null) {
 					final String[] fields = sInfeasible.split("\\n+");
@@ -112,13 +158,17 @@ class LinearSystemStatics {
 		_HiNudge = hiNudge == null ? 7 : hiNudge;
 		_ThresholdForFraction = (thresholdForFraction != null && thresholdForFraction > 0d) ? thresholdForFraction
 				: 1.0e-3;
-		if (initialM == null || initialTypeOfProblem == null) {
-			initialM = 3;
-			initialTypeOfProblem = TypeOfProblem.TRI;
-		}
-		_InitialDifficulty = new Difficulty(initialM, initialTypeOfProblem);
-		_EqutnNamesString = equtnNamesString;
-		_VblNamesString = vblNamesString;
+
+		initialM = (initialM != null && initialM > 0) ? initialM : 2;
+		initialEzM = (initialEzM != null && 0 < initialEzM && initialEzM <= initialM) ? initialEzM : initialM;
+		initialExtraColumn = initialExtraColumn != null ? initialExtraColumn : false;
+		initialSquareButSingular = initialSquareButSingular != null ? initialSquareButSingular : false;
+
+		_InitialDifficulty = new Difficulty(initialM, initialEzM, initialExtraColumn, initialSquareButSingular);
+
+		_EqutnNamesString = equtnNamesString == null ? "ABCDEFGHIJKLMN" : equtnNamesString;
+		_VblNamesString = vblNamesString == null ? "xyzwuvpqrstabc" : vblNamesString;
+
 		if (forInfeasible.isEmpty()) {
 			forInfeasible.add("This is not correct.");
 		}
@@ -198,6 +248,82 @@ class LinearSystemStatics {
 			a[j] = new MyFraction(d[j], _ThresholdForFraction);
 		}
 		return a;
+	}
+
+	public static double[][] generateLinearSystemDbl(final Difficulty difficulty, final RandomMatrixBuilder rmb) {
+		final int m = difficulty._m;
+		final double[][] coefs0;
+		if (difficulty._squareButSingular) {
+			/** Generate a square matrix with rank m-1. */
+			final int[] indClmns = CombinatoricTools.getInitial(m - 1);
+			coefs0 = rmb.buildMatrix(m, m, indClmns, /* upperTriangular= */false);
+		} else if (difficulty._extraColumn) {
+			final int[] indClmns = CombinatoricTools.getInitial(m);
+			coefs0 = rmb.buildMatrix(m, m + 1, indClmns, /* upperTriangular= */false);
+		} else {
+			final int ezM = difficulty._ezM;
+			if (ezM == 0) {
+				final int[] indClmns = CombinatoricTools.getInitial(m);
+				coefs0 = rmb.buildMatrix(m, m, indClmns, /* upperTriangular= */false);
+			} else {
+				/**
+				 * <pre>
+				 * There are 4 parts to the matrix.
+				 * 1. Top left square and non-singular,
+				 * 2. Bottom right, square and upper triangular,
+				 * 3. Bottom left: All 0
+				 * 4. Top right: Arbitrary
+				 * </pre>
+				 */
+				final int mTopLeft = m - ezM;
+				final int[] topLeftIndClmns = CombinatoricTools.getInitial(mTopLeft);
+				final double[][] topLeftCoefs = rmb.buildMatrix(mTopLeft, mTopLeft, topLeftIndClmns,
+						/* upperTriangular= */false);
+				final int[] bottomRightIndClmns = CombinatoricTools.getInitial(ezM);
+				final double[][] bottomRightCoefs = rmb.buildMatrix(ezM, ezM, bottomRightIndClmns,
+						/* upperTriangular= */true);
+				final double[][] topRight = new double[mTopLeft][];
+				for (int i = 0; i < mTopLeft; ++i) {
+					topRight[i] = new double[ezM];
+				}
+				for (int j = 0; j < ezM; ++j) {
+					final double[] topRightClmn = rmb.getRandomIndependentVector(null, mTopLeft);
+					for (int i = 0; i < mTopLeft; ++i) {
+						topRight[i][j] = topRightClmn[i];
+					}
+				}
+				coefs0 = new double[m][];
+				for (int i = 0; i < m; ++i) {
+					coefs0[i] = new double[m];
+					for (int j = 0; j < m; ++j) {
+						if (i < mTopLeft && j < mTopLeft) {
+							coefs0[i][j] = topLeftCoefs[i][j];
+						} else if (i >= mTopLeft && j >= mTopLeft) {
+							coefs0[i][j] = bottomRightCoefs[i - mTopLeft][j - mTopLeft];
+						} else if (i >= mTopLeft && j < mTopLeft) {
+							coefs0[i][j] = 0d;
+						} else {
+							coefs0[i][j] = topRight[i][j - mTopLeft];
+						}
+					}
+				}
+			}
+		}
+		return coefs0;
+	}
+
+	public static void main(final String[] args) {
+		final long seed = LinearSystemStatics._InitialSeed;
+		final int loMult = LinearSystemStatics._LoMult;
+		final int hiMult = LinearSystemStatics._HiMult;
+		final int loNudge = LinearSystemStatics._LoNudge;
+		final int hiNudge = LinearSystemStatics._HiNudge;
+		final RandomMatrixBuilder rmb = new RandomMatrixBuilder(seed, loMult, hiMult, loNudge, hiNudge);
+		final Difficulty difficulty = new Difficulty(7, 4, false, false);
+		final double[][] coefs = generateLinearSystemDbl(difficulty, rmb);
+		final PaqLu paqLu = new PaqLu(coefs);
+		System.out.println(NumericalRoutines.getString(coefs));
+		System.out.println(paqLu.getString());
 	}
 
 }

@@ -16,14 +16,15 @@ public class LinearSystemGenerator {
 	final private static int _Clmn1HdrLen = _Clmn1Hdr.length();
 	final private static String _StringBetweenClmns = "   ";
 
-	private static String getHelpString(final EnumSet<CommandType> toComment, final TypeOfProblem typeOfProblem) {
+	private static String getHelpString(final EnumSet<CommandType> toComment, final boolean forbidZeroOut) {
+		/** extraWrinkles here means that we forbid the zero out command. */
 		if (toComment.isEmpty()) {
 			return "";
 		}
 		int clmn0Len = _Clmn0Hdr.length();
 		int clmn1Len = _Clmn1Hdr.length();
 		for (final CommandType commandType : toComment) {
-			if (typeOfProblem != TypeOfProblem.FORBID_ZERO_OUT || commandType._operator != Operator.ZERO) {
+			if (!forbidZeroOut || commandType._operator != Operator.ZERO) {
 				clmn0Len = Math.max(clmn0Len, commandType._englishExample.length());
 				clmn1Len = Math.max(clmn1Len, commandType._commandExample.length());
 			}
@@ -39,7 +40,7 @@ public class LinearSystemGenerator {
 		final String fullRtHdr = (ltPad1 > 0 ? StringUtilities.padLeft("", ltPad1) : "") + _Clmn1Hdr;
 		s.append(fullRtHdr);
 		for (final CommandType commandType : toComment) {
-			if (typeOfProblem != TypeOfProblem.FORBID_ZERO_OUT || commandType._operator != Operator.ZERO) {
+			if (!forbidZeroOut || commandType._operator != Operator.ZERO) {
 				final String f = "\n  %-" + clmn0Len + "s%s%s";
 				s.append(String.format(f, commandType._englishExample, _StringBetweenClmns,
 						commandType._commandExample));
@@ -75,7 +76,7 @@ public class LinearSystemGenerator {
 		_hiNudge = hiNudge;
 		_loMult = loMult;
 		_hiMult = hiMult;
-		_rmb = new RandomMatrixBuilder(seed, loNudge, hiNudge, loMult, hiMult);
+		_rmb = new RandomMatrixBuilder(seed, loMult, hiMult, loNudge, hiNudge);
 		_ps = System.out;
 		_errPs = System.err;
 		_sysInScanner = sysInScanner;
@@ -83,26 +84,23 @@ public class LinearSystemGenerator {
 	}
 
 	public LinearSystem generateLinearSystem(final Difficulty difficulty) {
-		final int m = difficulty._nEquations;
-		final int n;
-		boolean upperTriangular = false;
-		switch (difficulty._typeOfProblem) {
-		case TRI:
-			upperTriangular = true;
-		case FULL:
-			n = m;
-			break;
-		case ONE_EXTRA:
-		case FORBID_ZERO_OUT:
-		default:
-			n = m + 1;
-			break;
-		}
-		final double[][] coefs = _rmb.buildMatrix(m, n, /* indClmnsArray= */null, upperTriangular);
 		final Random r = _rmb.getRng();
-		final double[][] correctValuesMtx = _rmb.buildMatrix(1, n, /* indClmnsArray= */null, upperTriangular);
-		final double[] correctValues = correctValuesMtx[0];
-		return new LinearSystem(coefs, correctValues, r);
+		final double[][] coefsD = LinearSystemStatics.generateLinearSystemDbl(difficulty, _rmb);
+		final int m = coefsD.length, n = coefsD[0].length;
+		final double[] values = new double[n];
+		final long lo = -((long) _loMult * _loMult) - Math.abs(_loNudge);
+		final long hi = ((long) _hiMult * _hiMult) + Math.abs(_hiNudge) + 1L;
+		for (int j = 0; j < n; ++j) {
+			values[j] = lo + r.nextLong(hi - lo);
+		}
+		final double[] rhsD = new double[m];
+		for (int i = 0; i < m; ++i) {
+			rhsD[i] = 0d;
+			for (int j = 0; j < n; ++j) {
+				rhsD[i] += coefsD[i][j] * values[j];
+			}
+		}
+		return new LinearSystem(coefsD, rhsD, r);
 	}
 
 	public void mainLoop() {
@@ -110,18 +108,19 @@ public class LinearSystemGenerator {
 		boolean goForward = true;
 		_activeLinearSystem = null;
 		Difficulty difficulty = LinearSystemStatics._InitialDifficulty;
+		final boolean forbidZeroOut = difficulty._squareButSingular || difficulty._extraColumn;
 		for (;;) {
 			if (_activeLinearSystem == null) {
 				_activeLinearSystem = generateLinearSystem(difficulty);
 				goForward = true;
 			}
-			_ps.printf("%s", getHelpString(toComment, difficulty._typeOfProblem));
+			_ps.printf("%s", getHelpString(toComment, forbidZeroOut));
 			if (toComment == CommandType._AllCommandTypes) {
 				toComment = CommandType._None;
 			}
 			_ps.printf("\n%s\n", _activeLinearSystem.getString());
 			final String line = _sysInScanner.nextLine();
-			final Command command = new Command(_activeLinearSystem, line, difficulty._typeOfProblem);
+			final Command command = new Command(_activeLinearSystem, line, forbidZeroOut);
 			if (command._commandType == null) {
 				_errPs.printf(">>>\"%s\"<<< has bad syntax.\n", line);
 				toComment = CommandType._AllCommandTypes;
@@ -182,7 +181,7 @@ public class LinearSystemGenerator {
 					case SOLVED:
 						_ps.printf("\n%s\n", _activeLinearSystem.getString());
 						_ps.printf("\n%s  Try a new problem:", selectRemark(_rmb.getRng(), lsStatus));
-						difficulty = goForward ? difficulty.next() : difficulty.pvs();
+						difficulty = goForward ? difficulty.getHarder() : difficulty.getEasier();
 						_activeLinearSystem = generateLinearSystem(difficulty);
 						goForward = true;
 						break;
@@ -204,20 +203,4 @@ public class LinearSystemGenerator {
 		}
 	}
 
-	public static void main(final String[] args) {
-		try (Scanner sysInScanner = new Scanner(System.in)) {
-			final long initialSeed = LinearSystemStatics._InitialSeed;
-			final int loMult = LinearSystemStatics._LoMult;
-			final int hiMult = LinearSystemStatics._HiMult;
-			final int loNudge = LinearSystemStatics._LoNudge;
-			final int hiNudge = LinearSystemStatics._HiNudge;
-			final LinearSystemGenerator lsg = new LinearSystemGenerator(initialSeed, loMult, hiMult, loNudge, hiNudge,
-					sysInScanner);
-			lsg.mainLoop();
-			lsg._ps.println();
-			lsg._ps.println("Exiting Program");
-		} catch (final Exception e) {
-			e.printStackTrace();
-		}
-	}
 }

@@ -20,33 +20,29 @@ public class LinearSystem {
 	final int[] _permForEqutns;
 	final int[] _permForVbls;
 	final MyFraction[][] _coefs;
-	final MyFraction[] _correctValues;
 	final MyFraction[] _guessedValues;
 	final MyFraction[] _rhs;
 
-	public LinearSystem(final double[][] dblCoefs, final double[] dblCorrectValues, final Random r) {
+	public LinearSystem(final double[][] dblCoefs, final double[] dblRhs0, final Random r) {
 		final MyFraction[][] coefs0 = LinearSystemStatics.toFractions(dblCoefs);
-		final MyFraction[] correctValues0 = LinearSystemStatics.toFractions(dblCorrectValues);
 		/** permute rows and columns. */
 		final int m = dblCoefs.length, n = dblCoefs[0].length;
 		final int[] permForEqutns = PermutationTools.randomPermutation(m, r);
 		final int[] permForVbls = PermutationTools.randomPermutation(n, r);
+		final double[] dblRhs = new double[m];
 		final MyFraction[][] coefs = new MyFraction[m][];
 		for (int i = 0; i < m; ++i) {
 			coefs[i] = coefs0[permForEqutns[i]].clone();
 			for (int j = 0; j < n; ++j) {
 				coefs[i][j] = coefs0[permForEqutns[i]][permForVbls[j]];
 			}
-		}
-		final MyFraction[] correctValues = new MyFraction[n];
-		for (int j = 0; j < n; ++j) {
-			correctValues[j] = correctValues0[j];
+			dblRhs[i] = dblRhs0[permForEqutns[i]];
 		}
 		final String[] equtnNames = LinearSystemStatics.getNominalEqutnNames(m);
 		final String[] vblNames = LinearSystemStatics.getNominalVblNames(n);
 
 		final LinearSystem linearSystem = new LinearSystem(equtnNames, coefs, /* permForEqutns= */null, /* rhs= */null,
-				vblNames, correctValues, /* guessedValues= */null, /* permForVbls= */null);
+				vblNames, /* guessedValues= */null, /* permForVbls= */null);
 		_equtnNames = linearSystem._equtnNames;
 		_equtnNameToIdx = linearSystem._equtnNameToIdx;
 		_vblNames = linearSystem._vblNames;
@@ -54,13 +50,12 @@ public class LinearSystem {
 		_permForEqutns = linearSystem._permForEqutns;
 		_permForVbls = linearSystem._permForVbls;
 		_coefs = linearSystem._coefs;
-		_correctValues = linearSystem._correctValues;
 		_guessedValues = linearSystem._guessedValues;
 		_rhs = linearSystem._rhs;
 	}
 
 	public LinearSystem(String[] equtnNames, final MyFraction[][] coefs, int[] permForEqutns, final MyFraction[] rhs,
-			String[] vblNames, final MyFraction[] correctValues, MyFraction[] guessedValues, int[] permForVbls) {
+			String[] vblNames, MyFraction[] guessedValues, int[] permForVbls) {
 		final int m = coefs.length, n = coefs[0].length;
 		permForEqutns = permForEqutns == null ? CombinatoricTools.getInitial(m) : permForEqutns;
 		permForVbls = permForVbls == null ? CombinatoricTools.getInitial(n) : permForVbls;
@@ -77,7 +72,7 @@ public class LinearSystem {
 				final int permedJ = permForVbls[j];
 				_coefs[i][j] = coefs[permedI][permedJ].clone();
 			}
-			_rhs[i] = rhs != null ? rhs[permedI].clone() : new MyFraction(0L, 1L);
+			_rhs[i] = rhs[permedI].clone();
 			_equtnNameToIdx.put(_equtnNames[i], i);
 		}
 		_permForEqutns = CombinatoricTools.getInitial(m);
@@ -89,23 +84,13 @@ public class LinearSystem {
 		}
 		_vblNameToIdx = new HashMap<>();
 		_vblNames = new String[n];
-		_correctValues = new MyFraction[n];
 		_guessedValues = new MyFraction[n];
 		for (int j = 0; j < n; ++j) {
 			final int permedForJ = permForVbls[j];
 			_vblNames[j] = vblNames[permedForJ];
-			_correctValues[j] = correctValues[permedForJ];
 			final MyFraction guessedValue = guessedValues[permedForJ];
 			_guessedValues[j] = guessedValue == null ? null : guessedValue.clone();
 			_vblNameToIdx.put(_vblNames[j], j);
-		}
-		if (rhs == null) {
-			for (int i = 0; i < m; ++i) {
-				for (int j = 0; j < n; ++j) {
-					_rhs[i].add(_coefs[i][j].multiply(_correctValues[j], /* operateOnSelf= */false),
-							/* operateOnSelf= */true);
-				}
-			}
 		}
 		_permForVbls = CombinatoricTools.getInitial(n);
 	}
@@ -168,24 +153,8 @@ public class LinearSystem {
 			return this;
 		}
 
-		return new LinearSystem(_equtnNames, _coefs, _permForEqutns, _rhs, _vblNames, _correctValues, _guessedValues,
-				_permForVbls);
+		return new LinearSystem(_equtnNames, _coefs, _permForEqutns, _rhs, _vblNames, _guessedValues, _permForVbls);
 	}
-
-	boolean isSolved() {
-		final int n = _coefs[0].length;
-		for (int j = 0; j < n; ++j) {
-			if (!MyFraction.IsValid(_guessedValues[j])) {
-				return false;
-			}
-			if (Math.abs(_guessedValues[j].toDouble() - _correctValues[j].toDouble()) > 0.5) {
-				return false;
-			}
-		}
-		return true;
-	}
-
-	final private static boolean _PrintCorrectValues = false;
 
 	public String getString() {
 		final LinearSystem permuted = permute();
@@ -202,7 +171,6 @@ public class LinearSystem {
 		}
 		final int nRealVbls = realVbls.cardinality();
 		final String[] vblNames = permuted._vblNames;
-		final MyFraction[] correctValues = permuted._correctValues;
 
 		/**
 		 * <pre>
@@ -256,11 +224,9 @@ public class LinearSystem {
 
 		final String[] realVblNames = new String[nRealVbls];
 		final MyFraction[] realGuessedValues = new MyFraction[nRealVbls];
-		final MyFraction[] realCorrectValues = new MyFraction[nRealVbls];
 		for (int j = realVbls.nextSetBit(0), j0 = 0; j >= 0; j = realVbls.nextSetBit(j + 1), ++j0) {
 			realVblNames[j0] = vblNames[j];
 			realGuessedValues[j0] = guessedValues[j];
-			realCorrectValues[j0] = correctValues[j];
 		}
 
 		/**
@@ -422,36 +388,24 @@ public class LinearSystem {
 			}
 		}
 
-		/** Print guesses and correct values. Here, we do our own. */
-		for (int iPass = 0; iPass < (_PrintCorrectValues ? 2 : 1); ++iPass) {
-			final boolean doGuesses = iPass == 0;
-			/** Do we even do this pass? */
-			boolean doThisPass = false;
-			for (int j = 0; j < n; ++j) {
-				if (doGuesses && _guessedValues[j] != null) {
-					doThisPass = true;
-					break;
-				}
-				if (!doGuesses && _correctValues[j] != null) {
-					doThisPass = true;
-					break;
-				}
+		/** Print guesses if there are any. */
+		boolean doGuesses = false;
+		for (int j = 0; j < n; ++j) {
+			if (doGuesses && _guessedValues[j] != null) {
+				doGuesses = true;
+				break;
 			}
-			if (!doThisPass) {
-				continue;
-			}
+		}
+		if (doGuesses) {
 			boolean doneIntro = false;
 			for (int j = 0; j < n; ++j) {
 				if (!doneIntro) {
-					s.append("\n" + (doGuesses ? "Your values so far:" : "Correct values:"));
+					s.append("\nYour values so far:");
 					doneIntro = true;
 				}
-				if (doGuesses && _guessedValues[j] != null) {
+				if (_guessedValues[j] != null) {
 					s.append(String.format("\n%s = %s", _vblNames[j],
 							_guessedValues[j].getString(/* printFloats= */true)));
-				} else if (!doGuesses) {
-					s.append(String.format("\n%s = %s", _vblNames[j],
-							_correctValues[j].getString(/* printFloat= */true)));
 				}
 			}
 		}

@@ -46,7 +46,7 @@ public class Command {
 		return getString();
 	}
 
-	public Command(final LinearSystem linearSystem, String line, final TypeOfProblem typeOfProblem) {
+	public Command(final LinearSystem linearSystem, String line, final boolean forbidZeroOut) {
 		_linearSystem = linearSystem;
 		/** Strip outside spaces and the ending period if it's there. */
 		line = line.trim();
@@ -94,7 +94,7 @@ public class Command {
 			return;
 		}
 
-		if (operator == Operator.ZERO && typeOfProblem == TypeOfProblem.FORBID_ZERO_OUT) {
+		if (forbidZeroOut && operator == Operator.ZERO) {
 			/** Error. */
 			_commandType = null;
 			_equtn0Idx = _equtn1Idx = _vbl0Idx = _vbl1Idx = -1;
