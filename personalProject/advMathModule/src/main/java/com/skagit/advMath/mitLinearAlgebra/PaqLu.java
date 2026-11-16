@@ -407,7 +407,8 @@ public class PaqLu extends MitLinearAlgebraCore {
 		}
 		final String s1 = String.format("\nEll:%s\nU:%s\nP:%s\nQ:%s\nPivotPairs: %s\nNullSpace:%s", s_ell, s_u, s_p,
 				s_q, s_pivotPairs.toString(), s_nullspace);
-		return s0 + s1;
+		final String s2 = String.format("\ndet[%f] rank[%d]", getDeterminant(), _rank);
+		return s0 + s1 + s2;
 	}
 
 	public static void main(final String[] args) {

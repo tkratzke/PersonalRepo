@@ -5,17 +5,19 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Properties;
+import java.util.Random;
 
 import com.skagit.advMath.mitLinearAlgebra.PaqLu;
 import com.skagit.advMath.mitLinearAlgebra.RandomMatrixBuilder;
 import com.skagit.utils.CombinatoricTools;
 import com.skagit.utils.MyFraction;
 import com.skagit.utils.NumericalRoutines;
+import com.skagit.utils.PermutationTools;
 import com.skagit.utils.ResourcesLister0;
 import com.skagit.utils.StaticUtilities;
 
 class LinearSystemStatics {
-	final static long _InitialSeed;
+	final static long _Seed;
 
 	final static int _LoMult;
 	final static int _HiMult;
@@ -37,7 +39,7 @@ class LinearSystemStatics {
 		final Properties properties = new Properties();
 
 		/** Generating linear systems: */
-		Long initialSeed = null;
+		Long seed = null;
 		Integer loMult = null;
 		Integer hiMult = null;
 		Integer loNudge = null;
@@ -47,10 +49,9 @@ class LinearSystemStatics {
 		Double thresholdForFraction = null;
 
 		/** Difficulty parameters: */
-		Integer initialM = null;
-		Integer initialEzM = null;
-		Boolean initialExtraColumn = null;
-		Boolean initialSquareButSingular = null;
+		Integer m = null;
+		Integer ezM = null;
+		Boolean singular = null;
 
 		/** Equation and variable names. */
 		String equtnNamesString = null;
@@ -65,9 +66,9 @@ class LinearSystemStatics {
 			relativePath = "/" + relativePath.replace('\\', '/');
 			try (InputStream in = clazz.getResourceAsStream(relativePath)) {
 				properties.load(in);
-				if (initialSeed == null) {
+				if (seed == null) {
 					try {
-						initialSeed = Long.parseLong((String) properties.get("initialSeed"));
+						seed = Long.parseLong((String) properties.get("seed"));
 					} catch (final NumberFormatException e) {
 					}
 				}
@@ -101,28 +102,21 @@ class LinearSystemStatics {
 					} catch (final NumberFormatException e) {
 					}
 				}
-				if (initialM == null) {
+				if (m == null) {
 					try {
-						initialM = Integer.parseInt((String) properties.get("initialM"));
+						m = Integer.parseInt((String) properties.get("m"));
 					} catch (final NumberFormatException e) {
 					}
 				}
-				if (initialEzM == null) {
+				if (ezM == null) {
 					try {
-						initialEzM = Integer.parseInt(properties.getProperty("initialEzM"));
+						ezM = Integer.parseInt(properties.getProperty("ezM"));
 					} catch (final NumberFormatException e) {
 					}
 				}
-				if (initialExtraColumn == null) {
+				if (singular == null) {
 					try {
-						initialExtraColumn = Boolean.parseBoolean(properties.getProperty("initialExtraColumn"));
-					} catch (final NumberFormatException e) {
-					}
-				}
-				if (initialSquareButSingular == null) {
-					try {
-						initialSquareButSingular = Boolean
-								.parseBoolean(properties.getProperty("initialSquareButSingular"));
+						singular = Boolean.parseBoolean(properties.getProperty("singular"));
 					} catch (final NumberFormatException e) {
 					}
 				}
@@ -151,7 +145,7 @@ class LinearSystemStatics {
 			} catch (final IOException e) {
 			}
 		}
-		_InitialSeed = initialSeed == null ? -1L : initialSeed;
+		_Seed = seed == null ? -1L : seed;
 		_LoMult = loMult == null ? -2 : loMult;
 		_HiMult = hiMult == null ? 8 : hiMult;
 		_LoNudge = loNudge == null ? -3 : loNudge;
@@ -159,12 +153,11 @@ class LinearSystemStatics {
 		_ThresholdForFraction = (thresholdForFraction != null && thresholdForFraction > 0d) ? thresholdForFraction
 				: 1.0e-3;
 
-		initialM = (initialM != null && initialM > 0) ? initialM : 2;
-		initialEzM = (initialEzM != null && 0 < initialEzM && initialEzM <= initialM) ? initialEzM : initialM;
-		initialExtraColumn = initialExtraColumn != null ? initialExtraColumn : false;
-		initialSquareButSingular = initialSquareButSingular != null ? initialSquareButSingular : false;
+		m = (m != null && m > 0) ? m : 2;
+		ezM = (ezM != null && 0 <= ezM && ezM <= m) ? ezM : m;
+		singular = singular != null ? singular : false;
 
-		_InitialDifficulty = new Difficulty(initialM, initialEzM, initialExtraColumn, initialSquareButSingular);
+		_InitialDifficulty = new Difficulty(m, ezM, singular);
 
 		_EqutnNamesString = equtnNamesString == null ? "ABCDEFGHIJKLMN" : equtnNamesString;
 		_VblNamesString = vblNamesString == null ? "xyzwuvpqrstabc" : vblNamesString;
@@ -250,16 +243,19 @@ class LinearSystemStatics {
 		return a;
 	}
 
-	public static double[][] generateLinearSystemDbl(final Difficulty difficulty, final RandomMatrixBuilder rmb) {
+	public static double[][] generateLinearSystemDbl(final RandomMatrixBuilder rmb, final Difficulty difficulty) {
 		final int m = difficulty._m;
+		final Random r = rmb.getRng();
 		final double[][] coefs0;
-		if (difficulty._squareButSingular) {
-			/** Generate a square matrix with rank m-1. */
-			final int[] indClmns = CombinatoricTools.getInitial(m - 1);
-			coefs0 = rmb.buildMatrix(m, m, indClmns, /* upperTriangular= */false);
-		} else if (difficulty._extraColumn) {
-			final int[] indClmns = CombinatoricTools.getInitial(m);
-			coefs0 = rmb.buildMatrix(m, m + 1, indClmns, /* upperTriangular= */false);
+		if (difficulty._singular) {
+			final boolean extraClmn = m == 1 ? true : r.nextBoolean();
+			if (extraClmn) {
+				final int[] indClmns = CombinatoricTools.getInitial(m);
+				coefs0 = rmb.buildMatrix(m, m + 1, indClmns, /* upperTriangular= */false);
+			} else {
+				final int[] indClmns = CombinatoricTools.getInitial(m - 1);
+				coefs0 = rmb.buildMatrix(m, m, indClmns, /* upperTriangular= */false);
+			}
 		} else {
 			final int ezM = difficulty._ezM;
 			if (ezM == 0) {
@@ -276,30 +272,40 @@ class LinearSystemStatics {
 				 * </pre>
 				 */
 				final int mTopLeft = m - ezM;
-				final int[] topLeftIndClmns = CombinatoricTools.getInitial(mTopLeft);
-				final double[][] topLeftCoefs = rmb.buildMatrix(mTopLeft, mTopLeft, topLeftIndClmns,
-						/* upperTriangular= */false);
-				final int[] bottomRightIndClmns = CombinatoricTools.getInitial(ezM);
-				final double[][] bottomRightCoefs = rmb.buildMatrix(ezM, ezM, bottomRightIndClmns,
-						/* upperTriangular= */true);
-				final double[][] topRight = new double[mTopLeft][];
-				for (int i = 0; i < mTopLeft; ++i) {
-					topRight[i] = new double[ezM];
-				}
-				for (int j = 0; j < ezM; ++j) {
-					final double[] topRightClmn = rmb.getRandomIndependentVector(null, mTopLeft);
-					for (int i = 0; i < mTopLeft; ++i) {
-						topRight[i][j] = topRightClmn[i];
+				final double[][] topLeft;
+				final double[][] topRight;
+				if (mTopLeft == 0) {
+					topLeft = topRight = null;
+				} else {
+					final int[] topLeftIndClmns = CombinatoricTools.getInitial(mTopLeft);
+					topLeft = rmb.buildMatrix(mTopLeft, mTopLeft, topLeftIndClmns, /* upperTriangular= */false);
+					if (ezM > 0) {
+						topRight = new double[mTopLeft][];
+						for (int i = 0; i < mTopLeft; ++i) {
+							topRight[i] = new double[ezM];
+							for (int j = 0; j < ezM; ++j) {
+								topRight[i][j] = rmb.nextInt();
+							}
+						}
+					} else {
+						topRight = null;
 					}
+				}
+				final double[][] bottomRight;
+				if (ezM == 0) {
+					bottomRight = null;
+				} else {
+					final int[] bottomRightIndClmns = CombinatoricTools.getInitial(ezM);
+					bottomRight = rmb.buildMatrix(ezM, ezM, bottomRightIndClmns, /* upperTriangular= */true);
 				}
 				coefs0 = new double[m][];
 				for (int i = 0; i < m; ++i) {
 					coefs0[i] = new double[m];
 					for (int j = 0; j < m; ++j) {
 						if (i < mTopLeft && j < mTopLeft) {
-							coefs0[i][j] = topLeftCoefs[i][j];
+							coefs0[i][j] = topLeft[i][j];
 						} else if (i >= mTopLeft && j >= mTopLeft) {
-							coefs0[i][j] = bottomRightCoefs[i - mTopLeft][j - mTopLeft];
+							coefs0[i][j] = bottomRight[i - mTopLeft][j - mTopLeft];
 						} else if (i >= mTopLeft && j < mTopLeft) {
 							coefs0[i][j] = 0d;
 						} else {
@@ -309,18 +315,29 @@ class LinearSystemStatics {
 				}
 			}
 		}
-		return coefs0;
+		/** Just for fun, permute the coefs. */
+		final int[] rowPerm = PermutationTools.randomPermutation(m, r);
+		final int n = coefs0[0].length;
+		final int[] clmnPerm = PermutationTools.randomPermutation(n, r);
+		final double[][] coefs = new double[m][];
+		for (int i = 0; i < m; ++i) {
+			coefs[i] = new double[n];
+			for (int j = 0; j < n; ++j) {
+				coefs[i][j] = coefs0[rowPerm[i]][clmnPerm[j]];
+			}
+		}
+		return coefs;
 	}
 
 	public static void main(final String[] args) {
-		final long seed = LinearSystemStatics._InitialSeed;
+		final long seed = LinearSystemStatics._Seed;
 		final int loMult = LinearSystemStatics._LoMult;
 		final int hiMult = LinearSystemStatics._HiMult;
 		final int loNudge = LinearSystemStatics._LoNudge;
 		final int hiNudge = LinearSystemStatics._HiNudge;
 		final RandomMatrixBuilder rmb = new RandomMatrixBuilder(seed, loMult, hiMult, loNudge, hiNudge);
-		final Difficulty difficulty = new Difficulty(7, 4, false, false);
-		final double[][] coefs = generateLinearSystemDbl(difficulty, rmb);
+		final Difficulty difficulty = new Difficulty(7, 4, false);
+		final double[][] coefs = generateLinearSystemDbl(rmb, difficulty);
 		final PaqLu paqLu = new PaqLu(coefs);
 		System.out.println(NumericalRoutines.getString(coefs));
 		System.out.println(paqLu.getString());

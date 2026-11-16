@@ -16,7 +16,7 @@ public class RandomMatrixBuilder extends MitLinearAlgebraCore {
 	final static int _LoNudge = -3;
 	final static int _HiNudge = 3;
 
-	final private Randomx _random;
+	final private Randomx _r;
 	final private int _loMult, _hiMult;
 	final private int _loNudge, _hiNudge;
 
@@ -24,9 +24,9 @@ public class RandomMatrixBuilder extends MitLinearAlgebraCore {
 			final int hiNudge) {
 		/** If seed == -1, use super random. */
 		if (seed == -1) {
-			_random = new Randomx(/* useCurrentTimeMs= */true);
+			_r = new Randomx(/* useCurrentTimeMs= */true);
 		} else {
-			_random = new Randomx(seed);
+			_r = new Randomx(seed);
 		}
 		_loMult = loMult;
 		_hiMult = hiMult;
@@ -35,7 +35,7 @@ public class RandomMatrixBuilder extends MitLinearAlgebraCore {
 	}
 
 	public Random getRng() {
-		return _random;
+		return _r;
 	}
 
 	public RandomMatrixBuilder(final long seed) {
@@ -82,7 +82,7 @@ public class RandomMatrixBuilder extends MitLinearAlgebraCore {
 			if (j < n) {
 				if (upperTriangular) {
 					clmns[j] = getRandomLinearCombination(tempClmns, m);
-					clmns[j][lubIdx] = randomNonZeroInt(_loNudge, _hiNudge);
+					clmns[j][lubIdx] = randomNonZeroInt(_loNudge, _hiNudge, _r);
 				} else {
 					clmns[j] = getRandomIndependentVector(tempClmns, m);
 				}
@@ -96,7 +96,7 @@ public class RandomMatrixBuilder extends MitLinearAlgebraCore {
 				/* upperTriangular= */false);
 		final Qr qrU = new Qr(mtx0);
 		final double[][] q = qrU.getQ();
-		final int[] perm = PermutationTools.randomPermutation(m, _random);
+		final int[] perm = PermutationTools.randomPermutation(m, _r);
 		final double[][] mtx = new double[m][];
 		for (int k = 0; k < m; ++k) {
 			mtx[k] = q[perm[k]];
@@ -125,7 +125,7 @@ public class RandomMatrixBuilder extends MitLinearAlgebraCore {
 		final double[] vector = new double[m];
 		Arrays.fill(vector, 0d);
 		for (int j = 0; j < n; ++j) {
-			final double coef = randomNonZeroInt(_loMult, _hiMult);
+			final double coef = randomNonZeroInt(_loMult, _hiMult, _r);
 			for (int i = 0; i < m; ++i) {
 				vector[i] += coef * vectors[j][i];
 			}
@@ -138,7 +138,7 @@ public class RandomMatrixBuilder extends MitLinearAlgebraCore {
 		if (n == 0) {
 			final double[] vector = new double[m];
 			for (int i = 0; i < m; ++i) {
-				vector[i] = randomNonZeroInt(_loNudge, _hiNudge);
+				vector[i] = randomNonZeroInt(_loNudge, _hiNudge, _r);
 			}
 			return vector;
 		}
@@ -169,17 +169,16 @@ public class RandomMatrixBuilder extends MitLinearAlgebraCore {
 		 */
 		final double[] clmn = getRandomLinearCombination(tempClmns, m);
 		for (int i = pivotRows.nextClearBit(0); i < m; i = pivotRows.nextClearBit(i + 1)) {
-			clmn[i] += randomNonZeroInt(_loNudge, _hiNudge);
+			clmn[i] += randomNonZeroInt(_loNudge, _hiNudge, _r);
 		}
 		return clmn;
 	}
 
-	private int randomNonZeroInt(final int lo, final int hi) {
-		final int range = hi - lo + 1;
+	public static int randomNonZeroInt(final int lo, final int hi, final Random r) {
 		final boolean forbidOnes = hi > 1 || lo < -1;
 		int randomInt = 0;
 		for (int k = 0; k < 10; ++k) {
-			randomInt = _random.nextInt(range) + lo;
+			randomInt = r.nextInt(lo, hi + 1);
 			if (randomInt == 0) {
 				continue;
 			}
@@ -188,6 +187,11 @@ public class RandomMatrixBuilder extends MitLinearAlgebraCore {
 			}
 		}
 		return randomInt;
+	}
+
+	public double nextInt() {
+		getRng();
+		return _r.nextInt(_loMult, _hiMult);
 	}
 
 }

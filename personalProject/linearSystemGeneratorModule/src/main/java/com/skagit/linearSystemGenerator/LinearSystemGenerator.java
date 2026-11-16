@@ -85,22 +85,22 @@ public class LinearSystemGenerator {
 
 	public LinearSystem generateLinearSystem(final Difficulty difficulty) {
 		final Random r = _rmb.getRng();
-		final double[][] coefsD = LinearSystemStatics.generateLinearSystemDbl(difficulty, _rmb);
-		final int m = coefsD.length, n = coefsD[0].length;
+		final double[][] coefsDbl = LinearSystemStatics.generateLinearSystemDbl(_rmb, difficulty);
+		final int m = coefsDbl.length, n = coefsDbl[0].length;
 		final double[] values = new double[n];
 		final long lo = -((long) _loMult * _loMult) - Math.abs(_loNudge);
 		final long hi = ((long) _hiMult * _hiMult) + Math.abs(_hiNudge) + 1L;
 		for (int j = 0; j < n; ++j) {
 			values[j] = lo + r.nextLong(hi - lo);
 		}
-		final double[] rhsD = new double[m];
+		final double[] rhsDbl = new double[m];
 		for (int i = 0; i < m; ++i) {
-			rhsD[i] = 0d;
+			rhsDbl[i] = 0d;
 			for (int j = 0; j < n; ++j) {
-				rhsD[i] += coefsD[i][j] * values[j];
+				rhsDbl[i] += coefsDbl[i][j] * values[j];
 			}
 		}
-		return new LinearSystem(coefsD, rhsD, r);
+		return new LinearSystem(coefsDbl, rhsDbl, difficulty);
 	}
 
 	public void mainLoop() {
@@ -108,7 +108,7 @@ public class LinearSystemGenerator {
 		boolean goForward = true;
 		_activeLinearSystem = null;
 		Difficulty difficulty = LinearSystemStatics._InitialDifficulty;
-		final boolean forbidZeroOut = difficulty._squareButSingular || difficulty._extraColumn;
+		final boolean forbidZeroOut = difficulty._singular;
 		for (;;) {
 			if (_activeLinearSystem == null) {
 				_activeLinearSystem = generateLinearSystem(difficulty);
@@ -203,4 +203,20 @@ public class LinearSystemGenerator {
 		}
 	}
 
+	public static void main(final String[] args) {
+		try (Scanner sysInScanner = new Scanner(System.in)) {
+			final long seed = LinearSystemStatics._Seed;
+			final int loMult = LinearSystemStatics._LoMult;
+			final int hiMult = LinearSystemStatics._HiMult;
+			final int loNudge = LinearSystemStatics._LoNudge;
+			final int hiNudge = LinearSystemStatics._HiNudge;
+			final LinearSystemGenerator linearSystemGenerator = new LinearSystemGenerator(seed, loMult, hiMult, loNudge,
+					hiNudge, sysInScanner);
+			linearSystemGenerator.mainLoop();
+			linearSystemGenerator._ps.println();
+			linearSystemGenerator._ps.println("Exiting Program");
+		} catch (final Exception e) {
+			e.printStackTrace();
+		}
+	}
 }
