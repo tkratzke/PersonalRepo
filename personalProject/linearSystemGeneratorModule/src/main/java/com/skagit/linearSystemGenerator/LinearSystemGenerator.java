@@ -104,7 +104,7 @@ public class LinearSystemGenerator {
 	}
 
 	public void mainLoop() {
-		EnumSet<CommandType> toComment = CommandType._AllCommandTypes;
+		EnumSet<CommandType> toComment = CommandType._StandardCommandTypes;
 		boolean goForward = true;
 		_activeLinearSystem = null;
 		Difficulty difficulty = LinearSystemStatics._InitialDifficulty;
@@ -115,7 +115,7 @@ public class LinearSystemGenerator {
 				goForward = true;
 			}
 			_ps.printf("%s", getHelpString(toComment, forbidZeroOut));
-			if (toComment == CommandType._AllCommandTypes) {
+			if (toComment == CommandType._StandardCommandTypes) {
 				toComment = CommandType._None;
 			}
 			_ps.printf("\n%s\n", _activeLinearSystem.getString());
@@ -123,7 +123,7 @@ public class LinearSystemGenerator {
 			final Command command = new Command(_activeLinearSystem, line, forbidZeroOut);
 			if (command._commandType == null) {
 				_errPs.printf(">>>\"%s\"<<< has bad syntax.\n", line);
-				toComment = CommandType._AllCommandTypes;
+				toComment = CommandType._StandardCommandTypes;
 				continue;
 			}
 			if (command != null) {
@@ -148,7 +148,7 @@ public class LinearSystemGenerator {
 								<<<
 								""", //
 								equtnAName, vblName, vblName, equtnAName);
-						toComment = CommandType._AllCommandTypes;
+						toComment = CommandType._StandardCommandTypes;
 					}
 					break;
 				case MULTIPLY:
@@ -179,21 +179,22 @@ public class LinearSystemGenerator {
 					case FEASIBLE:
 						break;
 					case SOLVED:
-						_ps.printf("\n%s\n", _activeLinearSystem.getString());
-						_ps.printf("\n%s  Try a new problem:", selectRemark(_rmb.getRng(), lsStatus));
-						difficulty = goForward ? difficulty.getHarder() : difficulty.getEasier();
-						_activeLinearSystem = generateLinearSystem(difficulty);
-						goForward = true;
-						break;
 					case INFEASIBLE:
 					default:
-						_errPs.print(selectRemark(_rmb.getRng(), lsStatus));
-						goForward = false;
+						if (lsStatus == LsStatus.SOLVED && goForward) {
+							_ps.printf("\n%s", selectRemark(_rmb.getRng(), lsStatus));
+						} else {
+							_errPs.printf("\n%s", selectRemark(_rmb.getRng(), lsStatus));
+						}
+						difficulty = (goForward && lsStatus == LsStatus.SOLVED) ? difficulty.getHarder()
+								: difficulty.getEasier();
+						_activeLinearSystem = generateLinearSystem(difficulty);
+						goForward = true;
 						break;
 					}
 					break;
 				case HELP:
-					toComment = CommandType._AllCommandTypes;
+					toComment = CommandType._StandardCommandTypes;
 					continue;
 				case QUIT:
 				default:

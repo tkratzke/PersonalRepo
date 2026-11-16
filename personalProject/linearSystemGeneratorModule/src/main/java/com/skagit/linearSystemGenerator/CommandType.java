@@ -23,17 +23,17 @@ public enum CommandType {
 
 	final public static EnumSet<CommandType> _None = EnumSet.noneOf(CommandType.class);
 
-	final public static EnumSet<CommandType> _AllCommandTypes = EnumSet.of(//
+	final public static EnumSet<CommandType> _StandardCommandTypes = EnumSet.of(//
 			ADD, //
 			SUBTRACT, //
 			MULTIPLY, //
 			DIVIDE, //
 			SET, //
-			UNSET, //
+			// UNSET, //
 			TELL, //
-			ZERO, //
-			SWITCH_EQUTNS, //
-			SWITCH_VBLS, //
+			// ZERO, //
+			// SWITCH_EQUTNS, //
+			// SWITCH_VBLS, //
 			QUIT, //
 			HELP);
 
