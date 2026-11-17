@@ -235,11 +235,11 @@ public class LinearSystem {
 		}
 		final StringBuilder miscSb = new StringBuilder();
 		if (mRealEqutns > 0 && nRealVbls > 0) {
-			if (mRealEqutns > 0 && nRealVbls > 0) {
-				final PaqLu paqLu = new PaqLu(LinearSystemStatics.toDouble(realCoefs));
-				miscSb.append(String.format("Det[%f], Rank[%d] Difficulty%s", paqLu.getDeterminant(), paqLu.getRank(),
-						_difficulty.getString()));
-			}
+			final PaqLu paqLu = new PaqLu(LinearSystemStatics.toDouble(realCoefs));
+			miscSb.append(String.format("%s; Det[%f], Rank[%d] Difficulty%s", _lsStatus._s, paqLu.getDeterminant(),
+					paqLu.getRank(), _difficulty.getString()));
+		} else {
+			miscSb.append(String.format("%s; Difficulty%s", _lsStatus._s, _difficulty.getString()));
 		}
 
 		/**
@@ -340,11 +340,19 @@ public class LinearSystem {
 				}
 			}
 			badRows.set(i0);
-			mtxStrings[i0][nRealVbls - 1] = "0";
+		}
+		int nLhsClmns = nRealVbls;
+		if (!badRows.isEmpty() && nRealVbls == 0) {
+			/** We need a variable to put a 0 in. Use the last one. */
+			for (int i0 = 0; i0 < mRealEqutns; ++i0) {
+				mtxStrings[i0] = new String[1];
+				mtxStrings[i0][0] = badRows.get(i0) ? "0" : "";
+			}
+			nLhsClmns = 1;
 		}
 
-		final int[] clmnMaxes = new int[nRealVbls];
-		for (int j0 = 0; j0 < nRealVbls; ++j0) {
+		final int[] clmnMaxes = new int[nLhsClmns];
+		for (int j0 = 0; j0 < nLhsClmns; ++j0) {
 			clmnMaxes[j0] = 0;
 			for (int i0 = 0; i0 < mRealEqutns; ++i0) {
 				clmnMaxes[j0] = Math.max(clmnMaxes[j0], mtxStrings[i0][j0].length());
@@ -353,7 +361,7 @@ public class LinearSystem {
 
 		/** Pad mtxStrings. */
 		for (int i0 = 0; i0 < mRealEqutns; ++i0) {
-			for (int j0 = 0; j0 < nRealVbls; ++j0) {
+			for (int j0 = 0; j0 < nLhsClmns; ++j0) {
 				final int clmnMax = clmnMaxes[j0];
 				if (clmnMax > 0) {
 					mtxStrings[i0][j0] = StringUtilities.padLeft(mtxStrings[i0][j0], clmnMax);
@@ -382,16 +390,18 @@ public class LinearSystem {
 				bigSb.append('\n');
 			}
 			bigSb.append(realEqutnNames[i0]).append("  ");
-			for (int j0 = 0; j0 < nRealVbls; ++j0) {
+			for (int j0 = 0; j0 < nLhsClmns; ++j0) {
 				final int clmnMax = clmnMaxes[j0];
 				if (clmnMax > 0) {
-					final MyFraction coef = realCoefs[i0][j0];
-					if (needIntroStrings[j0]) {
-						final long coefNum = coef._num;
-						if (coefNum == 0d || j0 == firstNonZeros[i0]) {
-							bigSb.append("   ");
-						} else {
-							bigSb.append(coefNum > 0d ? " + " : " - ");
+					if (j0 < nRealVbls) {
+						final MyFraction coef = realCoefs[i0][j0];
+						if (needIntroStrings[j0]) {
+							final long coefNum = coef._num;
+							if (coefNum == 0d || j0 == firstNonZeros[i0]) {
+								bigSb.append("   ");
+							} else {
+								bigSb.append(coefNum > 0d ? " + " : " - ");
+							}
 						}
 					}
 					bigSb.append(mtxStrings[i0][j0]);
@@ -488,6 +498,33 @@ public class LinearSystem {
 			}
 		}
 		return LsStatus.FEASIBLE;
+	}
+
+	MyFraction[] completeASolution() {
+		if (_lsStatus == LsStatus.SOLVED) {
+			return _guessedValues;
+		}
+		final LsStatus oldLsStatus = _lsStatus;
+		final boolean _oldHaveSeenInfeasible = _haveSeenInfeasible;
+		final MyFraction[] oldGuessedValues = _guessedValues.clone();
+		final int n = _coefs[0].length;
+		for (int j = 0; j < n && _lsStatus == LsStatus.INFEASIBLE; ++j) {
+			if (_guessedValues[j] != null) {
+				doSetOrUnset(j, null);
+			}
+		}
+		for (int j = 0; j < n; ++j) {
+			if (_guessedValues[j] == null) {
+				doSetOrUnset(j, findValueForVbl(j));
+			}
+		}
+		final MyFraction[] answer = _guessedValues.clone();
+		for (int j = 0; j < n; ++j) {
+			doSetOrUnset(j, oldGuessedValues[j]);
+		}
+		_lsStatus = oldLsStatus;
+		_haveSeenInfeasible = _oldHaveSeenInfeasible;
+		return answer;
 	}
 
 	/** B += 2A or B -= 2A. */
@@ -606,11 +643,22 @@ public class LinearSystem {
 	}
 
 	void doTell(final Command command) {
+		final int j = command._vbl0Idx;
+		final MyFraction frctn = findValueForVbl(j);
+		if (frctn != null) {
+			doSetOrUnset(j, frctn);
+		}
+		_haveSeenDoTell = true;
+	}
+
+	private MyFraction findValueForVbl(final int j0) {
 		if (_lsStatus != LsStatus.FEASIBLE) {
-			return;
+			return null;
+		}
+		if (_guessedValues[j0] != null) {
+			return _guessedValues[j0];
 		}
 		final int m = _coefs.length, n = _coefs[0].length;
-		final int j0 = command._vbl0Idx;
 
 		doSetOrUnset(j0, null);
 		final BitSet realVbls = new BitSet(n);
@@ -650,9 +698,7 @@ public class LinearSystem {
 		}
 		final PaqLu paqLu = new PaqLu(LinearSystemStatics.toDouble(realCoefs), PaqLu.Pivoting.Full);
 		final double[][] xRows = paqLu.solve(rhsRows);
-		final double d = xRows[keyJ][0];
-		doSetOrUnset(j0, new MyFraction(d, LinearSystemStatics._ThresholdForFraction));
-		_haveSeenDoTell = true;
+		return new MyFraction(xRows[keyJ][0], LinearSystemStatics._ThresholdForFraction);
 	}
 
 	void doSetOrUnset(final Command command) {
@@ -685,11 +731,9 @@ public class LinearSystem {
 			_rhs[i].add(delta.multiply(_coefs[i][j], /* operateOnSelf= */false), /* operateOnSelf= */true);
 		}
 		_guessedValues[j] = frctn;
-		if (frctn != null) {
-			_lsStatus = computeLsStatus();
-			if (_lsStatus == LsStatus.INFEASIBLE) {
-				_haveSeenInfeasible = true;
-			}
+		_lsStatus = computeLsStatus();
+		if (_lsStatus == LsStatus.INFEASIBLE) {
+			_haveSeenInfeasible = true;
 		}
 	}
 

@@ -5,6 +5,7 @@ import java.util.Random;
 import java.util.Scanner;
 
 import com.skagit.advMath.mitLinearAlgebra.RandomMatrixBuilder;
+import com.skagit.utils.MyFraction;
 
 public class LinearSystemGenerator {
 
@@ -16,7 +17,7 @@ public class LinearSystemGenerator {
 	final PrintStream _ps;
 	final PrintStream _errPs;
 	Scanner _sysInScanner;
-	LinearSystem _activeLinearSystem;
+	LinearSystem _linearSystem;
 
 	public LinearSystemGenerator(final long seed, final int loMult, final int hiMult, final int loNudge,
 			final int hiNudge, final Scanner sysInScanner) {
@@ -28,31 +29,38 @@ public class LinearSystemGenerator {
 		_ps = System.out;
 		_errPs = System.err;
 		_sysInScanner = sysInScanner;
-		_activeLinearSystem = null;
+		_linearSystem = null;
 	}
 
 	public void mainLoop() {
-		_activeLinearSystem = getNextLinearSystem();
+		_linearSystem = getNextLinearSystem();
 		for (;;) {
-			if (_activeLinearSystem._askingToQuit) {
+			if (_linearSystem._askingToQuit) {
 				return;
 			}
 			final Random r = _rmb.getRng();
-			if (_activeLinearSystem._askingToGiveUp || _activeLinearSystem.isSolved()) {
-				_ps.printf("\n%s\n", _activeLinearSystem.selectRemark(r));
-				_activeLinearSystem = getNextLinearSystem();
+			if (_linearSystem._askingToGiveUp || _linearSystem.isSolved()) {
+				_ps.printf("\nAnswers:");
+				final MyFraction[] answer = _linearSystem.completeASolution();
+				final int n = answer.length;
+				for (int j = 0; j < n; ++j) {
+					System.out.printf("\n%s = %s", _linearSystem.getVblName(j),
+							answer[j].getString(/* printFloat= */false));
+				}
+				_ps.printf("\n\n\n%s\n", _linearSystem.selectRemark(r));
+				_linearSystem = getNextLinearSystem();
 			}
-			final String helpString = _activeLinearSystem.getHelpString();
+			final String helpString = _linearSystem.getHelpString();
 			if (helpString != null && helpString.length() > 0) {
 				_ps.printf("%s\n", helpString);
-				_activeLinearSystem.turnOffAskingForHelp();
+				_linearSystem.turnOffAskingForHelp();
 			}
-			_ps.printf("\n%s\n", _activeLinearSystem.getString());
+			_ps.printf("\n%s\n", _linearSystem.getString());
 			final String line = _sysInScanner.nextLine();
-			final Command command = new Command(_activeLinearSystem, line);
+			final Command command = new Command(_linearSystem, line);
 			if (command._commandType == null) {
 				_errPs.printf(">>>\"%s\"<<< has bad syntax.\n", line);
-				_activeLinearSystem.turnOnAskingForHelp();
+				_linearSystem.turnOnAskingForHelp();
 				continue;
 			}
 			if (command != null) {
@@ -60,15 +68,15 @@ public class LinearSystemGenerator {
 				switch (commandType) {
 				case ADD:
 				case SUBTRACT:
-					_activeLinearSystem.doAddOrSubtract(command);
+					_linearSystem.doAddOrSubtract(command);
 					break;
 				case ZERO:
 					/** Use A to Zero out x in B", "A x :: B */
-					if (!_activeLinearSystem.doZeroOut(command)) {
+					if (!_linearSystem.doZeroOut(command)) {
 						final int iA = command._equtn0Idx;
-						final String equtnAName = _activeLinearSystem.getEqutnName(iA);
+						final String equtnAName = _linearSystem.getEqutnName(iA);
 						final int j = command._vbl0Idx;
-						final String vblName = _activeLinearSystem.getVblName(j);
+						final String vblName = _linearSystem.getVblName(j);
 						_errPs.printf("""
 								>>>
 								Cannot use %s to zero out %s in any equtn.
@@ -81,29 +89,29 @@ public class LinearSystemGenerator {
 					break;
 				case MULTIPLY:
 				case DIVIDE:
-					_activeLinearSystem.doMultiplyOrDivide(command);
+					_linearSystem.doMultiplyOrDivide(command);
 					break;
 				case SWITCH_EQUTNS:
-					_activeLinearSystem.doSwitchEqutns(command);
+					_linearSystem.doSwitchEqutns(command);
 					break;
 				case SWITCH_VBLS:
-					_activeLinearSystem.doSwitchVbls(command);
+					_linearSystem.doSwitchVbls(command);
 					break;
 				case SET:
 				case UNSET:
-					_activeLinearSystem.doSetOrUnset(command);
+					_linearSystem.doSetOrUnset(command);
 					break;
 				case TELL:
-					_activeLinearSystem.doTell(command);
+					_linearSystem.doTell(command);
 					break;
 				case GIVE_UP:
-					_activeLinearSystem.doGiveUp(command);
+					_linearSystem.doGiveUp(command);
 					break;
 				case HELP:
-					_activeLinearSystem.doHelp(command);
+					_linearSystem.doHelp(command);
 					break;
 				case QUIT:
-					_activeLinearSystem.doQuit(command);
+					_linearSystem.doQuit(command);
 					break;
 				}
 			}
@@ -112,11 +120,11 @@ public class LinearSystemGenerator {
 
 	private LinearSystem getNextLinearSystem() {
 		final Difficulty difficulty;
-		if (_activeLinearSystem == null) {
+		if (_linearSystem == null) {
 			difficulty = LinearSystemStatics._InitialDifficulty;
 		} else {
-			difficulty = _activeLinearSystem.getEasier() ? _activeLinearSystem._difficulty.getEasier()
-					: _activeLinearSystem._difficulty.getHarder();
+			difficulty = _linearSystem.getEasier() ? _linearSystem._difficulty.getEasier()
+					: _linearSystem._difficulty.getHarder();
 		}
 		final Random r = _rmb.getRng();
 		final double[][] coefsDbl = LinearSystemStatics.generateLinearSystemDbl(_rmb, difficulty);
