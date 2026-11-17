@@ -121,7 +121,7 @@ public class LinearSystemGenerator {
 	private LinearSystem getNextLinearSystem() {
 		final Difficulty difficulty;
 		if (_linearSystem == null) {
-			difficulty = LinearSystemStatics._InitialDifficulty;
+			difficulty = Difficulty._InitialDifficulty;
 		} else {
 			difficulty = _linearSystem.getEasier() ? _linearSystem._difficulty.getEasier()
 					: _linearSystem._difficulty.getHarder();

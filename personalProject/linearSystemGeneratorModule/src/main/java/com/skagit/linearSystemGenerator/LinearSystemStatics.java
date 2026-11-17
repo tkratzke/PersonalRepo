@@ -25,7 +25,6 @@ class LinearSystemStatics {
 	final static int _HiNudge;
 	final static double _ThresholdForFraction;
 
-	final static Difficulty _InitialDifficulty;
 	final static String _EqutnNamesString;
 	final static String _VblNamesString;
 	final static String[] _RemarksForInfeasible;
@@ -47,11 +46,6 @@ class LinearSystemStatics {
 
 		/** Fraction determination: */
 		Double thresholdForFraction = null;
-
-		/** Difficulty parameters: */
-		Integer m = null;
-		Integer ezM = null;
-		Boolean singular = null;
 
 		/** Equation and variable names. */
 		String equtnNamesString = null;
@@ -102,25 +96,6 @@ class LinearSystemStatics {
 					} catch (final NumberFormatException e) {
 					}
 				}
-				if (m == null) {
-					try {
-						m = Integer.parseInt((String) properties.get("m"));
-					} catch (final NumberFormatException e) {
-					}
-				}
-				if (ezM == null) {
-					try {
-						ezM = Integer.parseInt(properties.getProperty("ezM"));
-					} catch (final NumberFormatException e) {
-					}
-				}
-				if (singular == null) {
-					try {
-						singular = Boolean.parseBoolean(properties.getProperty("singular"));
-					} catch (final NumberFormatException e) {
-					}
-				}
-
 				if (equtnNamesString == null) {
 					equtnNamesString = properties.getProperty("equationNamesString");
 				}
@@ -152,12 +127,6 @@ class LinearSystemStatics {
 		_HiNudge = hiNudge == null ? 7 : hiNudge;
 		_ThresholdForFraction = (thresholdForFraction != null && thresholdForFraction > 0d) ? thresholdForFraction
 				: 1.0e-3;
-
-		m = (m != null && m > 0) ? m : 2;
-		ezM = (ezM != null && 0 <= ezM && ezM <= m) ? ezM : m;
-		singular = singular != null ? singular : false;
-
-		_InitialDifficulty = new Difficulty(m, ezM, singular);
 
 		_EqutnNamesString = equtnNamesString == null ? "ABCDEFGHIJKLMN" : equtnNamesString;
 		_VblNamesString = vblNamesString == null ? "xyzwuvpqrstabc" : vblNamesString;
