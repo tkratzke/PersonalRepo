@@ -1,14 +1,24 @@
 package com.skagit.linearSystemGenerator;
 
+import java.util.HashMap;
+
 import com.skagit.utils.MyFraction;
 import com.skagit.utils.MyFractionStatics;
 
 public class Command {
+	final private static HashMap<Character, CommandType> _FirstLetterToCommandType;
 	public final LinearSystem _linearSystem;
 	public final CommandType _commandType;
 	final int _equtn0Idx, _equtn1Idx;
 	final int _vbl0Idx, _vbl1Idx;
 	final MyFraction _frctn;
+
+	static {
+		_FirstLetterToCommandType = new HashMap<>();
+		_FirstLetterToCommandType.put('H', CommandType.HELP);
+		_FirstLetterToCommandType.put('Q', CommandType.QUIT);
+		_FirstLetterToCommandType.put('G', CommandType.GIVE_UP);
+	}
 
 	public Command(final LinearSystem linearSystem, final CommandType commandType, final int equtn0Idx,
 			final int equtn1Idx, final int vbl0Idx, final int vbl1Idx, final MyFraction frctn) {
@@ -46,7 +56,7 @@ public class Command {
 		return getString();
 	}
 
-	public Command(final LinearSystem linearSystem, String line, final boolean forbidZeroOut) {
+	public Command(final LinearSystem linearSystem, String line) {
 		_linearSystem = linearSystem;
 		/** Strip outside spaces and the ending period if it's there. */
 		line = line.trim();
@@ -78,22 +88,14 @@ public class Command {
 			}
 		}
 		if (operator == null) {
-			/** No operator; must be help, quit, or an error. */
-			final char c = Character.toLowerCase(line.charAt(0));
-			final CommandType commandType = c == 'q' ? CommandType.QUIT : (c == 'h' ? CommandType.HELP : null);
-			if (commandType != null) {
-				_commandType = commandType;
-				_equtn0Idx = _equtn1Idx = _vbl0Idx = _vbl1Idx = -1;
-				_frctn = null;
-				return;
-			}
-			/** Error. */
-			_commandType = null;
+			/** No operator; must be help, quit, give_up, or an error. */
+			_commandType = _FirstLetterToCommandType.get(Character.toUpperCase(line.charAt(0)));
 			_equtn0Idx = _equtn1Idx = _vbl0Idx = _vbl1Idx = -1;
 			_frctn = null;
 			return;
 		}
 
+		final boolean forbidZeroOut = !linearSystem._difficulty._singular;
 		if (forbidZeroOut && operator == Operator.ZERO) {
 			/** Error. */
 			_commandType = null;
@@ -253,7 +255,15 @@ public class Command {
 			final String s = afterOperator.substring(k);
 			equtn1Idx = linearSystem.getEqutnIdx(s);
 			if (equtn1Idx >= 0) {
-				frctn = k == 0 ? new MyFraction(1L, 1L) : MyFractionStatics.getFraction(afterOperator.substring(0, k));
+				final String theRest = afterOperator.substring(0, k).trim();
+				if (theRest.length() == 1) {
+					final char c = theRest.charAt(0);
+					if (c == '-' || c == '+') {
+						frctn = new MyFraction(c == '-' ? -1L : 1L, 1L);
+						break;
+					}
+				}
+				frctn = k == 0 ? new MyFraction(1L, 1L) : MyFractionStatics.getFraction(theRest);
 				break;
 			}
 		}

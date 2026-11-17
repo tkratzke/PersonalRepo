@@ -13,6 +13,7 @@ public enum CommandType {
 	SET(Operator.SET, "Set x to 7", "x = 7"), //
 	UNSET(Operator.SET, "Unset x", "x ="), //
 	TELL(Operator.SET, "Tell me what x is", "x =?"), //
+	GIVE_UP(null, "Give up", "Give up"), //
 	QUIT(null, "Quit", "Quit"), //
 	HELP(null, "Help", "Help");//
 
@@ -24,16 +25,17 @@ public enum CommandType {
 	final public static EnumSet<CommandType> _None = EnumSet.noneOf(CommandType.class);
 
 	final public static EnumSet<CommandType> _StandardCommandTypes = EnumSet.of(//
-			ADD, //
+			// ADD, //
 			SUBTRACT, //
 			MULTIPLY, //
-			DIVIDE, //
+			// DIVIDE, //
 			SET, //
-			// UNSET, //
+			UNSET, //
 			TELL, //
 			// ZERO, //
 			// SWITCH_EQUTNS, //
 			// SWITCH_VBLS, //
+			GIVE_UP, //
 			QUIT, //
 			HELP);
 

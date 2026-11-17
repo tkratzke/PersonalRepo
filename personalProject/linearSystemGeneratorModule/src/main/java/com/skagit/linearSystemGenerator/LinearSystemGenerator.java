@@ -1,64 +1,12 @@
 package com.skagit.linearSystemGenerator;
 
 import java.io.PrintStream;
-import java.util.EnumSet;
 import java.util.Random;
 import java.util.Scanner;
 
 import com.skagit.advMath.mitLinearAlgebra.RandomMatrixBuilder;
-import com.skagit.utils.StringUtilities;
 
 public class LinearSystemGenerator {
-
-	final private static String _Clmn0Hdr = "To do this";
-	final private static int _Clmn0HdrLen = _Clmn0Hdr.length();
-	final private static String _Clmn1Hdr = "Enter this";
-	final private static int _Clmn1HdrLen = _Clmn1Hdr.length();
-	final private static String _StringBetweenClmns = "   ";
-
-	private static String getHelpString(final EnumSet<CommandType> toComment, final boolean forbidZeroOut) {
-		/** extraWrinkles here means that we forbid the zero out command. */
-		if (toComment.isEmpty()) {
-			return "";
-		}
-		int clmn0Len = _Clmn0Hdr.length();
-		int clmn1Len = _Clmn1Hdr.length();
-		for (final CommandType commandType : toComment) {
-			if (!forbidZeroOut || commandType._operator != Operator.ZERO) {
-				clmn0Len = Math.max(clmn0Len, commandType._englishExample.length());
-				clmn1Len = Math.max(clmn1Len, commandType._commandExample.length());
-			}
-		}
-		final int ltPad0 = (clmn0Len - _Clmn0HdrLen) / 2;
-		String fullLtHdr = (ltPad0 > 0 ? StringUtilities.padLeft("", ltPad0) : "") + _Clmn0Hdr;
-		final int rtPad0 = clmn0Len - fullLtHdr.length();
-		if (rtPad0 > 0) {
-			fullLtHdr += StringUtilities.padRight("", rtPad0);
-		}
-		final StringBuilder s = new StringBuilder("  ").append(fullLtHdr).append(_StringBetweenClmns);
-		final int ltPad1 = (clmn1Len - _Clmn1HdrLen) / 2;
-		final String fullRtHdr = (ltPad1 > 0 ? StringUtilities.padLeft("", ltPad1) : "") + _Clmn1Hdr;
-		s.append(fullRtHdr);
-		for (final CommandType commandType : toComment) {
-			if (!forbidZeroOut || commandType._operator != Operator.ZERO) {
-				final String f = "\n  %-" + clmn0Len + "s%s%s";
-				s.append(String.format(f, commandType._englishExample, _StringBetweenClmns,
-						commandType._commandExample));
-			}
-		}
-		return s.toString();
-	}
-
-	private static String selectRemark(final Random r, final LsStatus lsStatus) {
-		if (lsStatus == LsStatus.SOLVED) {
-			return LinearSystemStatics._RemarksForSolved[r.nextInt(LinearSystemStatics._RemarksForSolved.length)];
-		}
-		if (lsStatus == LsStatus.INFEASIBLE) {
-			return LinearSystemStatics._RemarksForInfeasible[r
-					.nextInt(LinearSystemStatics._RemarksForInfeasible.length)];
-		}
-		return "";
-	}
 
 	final int _loMult;
 	final int _hiMult;
@@ -83,7 +31,93 @@ public class LinearSystemGenerator {
 		_activeLinearSystem = null;
 	}
 
-	public LinearSystem generateLinearSystem(final Difficulty difficulty) {
+	public void mainLoop() {
+		_activeLinearSystem = getNextLinearSystem();
+		for (;;) {
+			if (_activeLinearSystem._askingToQuit) {
+				return;
+			}
+			final Random r = _rmb.getRng();
+			if (_activeLinearSystem._askingToGiveUp || _activeLinearSystem.isSolved()) {
+				_ps.printf("\n%s\n", _activeLinearSystem.selectRemark(r));
+				_activeLinearSystem = getNextLinearSystem();
+			}
+			final String helpString = _activeLinearSystem.getHelpString();
+			if (helpString != null && helpString.length() > 0) {
+				_ps.printf("%s\n", helpString);
+				_activeLinearSystem.turnOffAskingForHelp();
+			}
+			_ps.printf("\n%s\n", _activeLinearSystem.getString());
+			final String line = _sysInScanner.nextLine();
+			final Command command = new Command(_activeLinearSystem, line);
+			if (command._commandType == null) {
+				_errPs.printf(">>>\"%s\"<<< has bad syntax.\n", line);
+				_activeLinearSystem.turnOnAskingForHelp();
+				continue;
+			}
+			if (command != null) {
+				final CommandType commandType = command._commandType;
+				switch (commandType) {
+				case ADD:
+				case SUBTRACT:
+					_activeLinearSystem.doAddOrSubtract(command);
+					break;
+				case ZERO:
+					/** Use A to Zero out x in B", "A x :: B */
+					if (!_activeLinearSystem.doZeroOut(command)) {
+						final int iA = command._equtn0Idx;
+						final String equtnAName = _activeLinearSystem.getEqutnName(iA);
+						final int j = command._vbl0Idx;
+						final String vblName = _activeLinearSystem.getVblName(j);
+						_errPs.printf("""
+								>>>
+								Cannot use %s to zero out %s in any equtn.
+								The multiplier of %s in %s is 0.0 and this
+								would lead to a divide by zero.
+								<<<
+								""", //
+								equtnAName, vblName, vblName, equtnAName);
+					}
+					break;
+				case MULTIPLY:
+				case DIVIDE:
+					_activeLinearSystem.doMultiplyOrDivide(command);
+					break;
+				case SWITCH_EQUTNS:
+					_activeLinearSystem.doSwitchEqutns(command);
+					break;
+				case SWITCH_VBLS:
+					_activeLinearSystem.doSwitchVbls(command);
+					break;
+				case SET:
+				case UNSET:
+					_activeLinearSystem.doSetOrUnset(command);
+					break;
+				case TELL:
+					_activeLinearSystem.doTell(command);
+					break;
+				case GIVE_UP:
+					_activeLinearSystem.doGiveUp(command);
+					break;
+				case HELP:
+					_activeLinearSystem.doHelp(command);
+					break;
+				case QUIT:
+					_activeLinearSystem.doQuit(command);
+					break;
+				}
+			}
+		}
+	}
+
+	private LinearSystem getNextLinearSystem() {
+		final Difficulty difficulty;
+		if (_activeLinearSystem == null) {
+			difficulty = LinearSystemStatics._InitialDifficulty;
+		} else {
+			difficulty = _activeLinearSystem.getEasier() ? _activeLinearSystem._difficulty.getEasier()
+					: _activeLinearSystem._difficulty.getHarder();
+		}
 		final Random r = _rmb.getRng();
 		final double[][] coefsDbl = LinearSystemStatics.generateLinearSystemDbl(_rmb, difficulty);
 		final int m = coefsDbl.length, n = coefsDbl[0].length;
@@ -101,107 +135,6 @@ public class LinearSystemGenerator {
 			}
 		}
 		return new LinearSystem(coefsDbl, rhsDbl, difficulty);
-	}
-
-	public void mainLoop() {
-		EnumSet<CommandType> toComment = CommandType._StandardCommandTypes;
-		boolean goForward = true;
-		_activeLinearSystem = null;
-		Difficulty difficulty = LinearSystemStatics._InitialDifficulty;
-		final boolean forbidZeroOut = difficulty._singular;
-		for (;;) {
-			if (_activeLinearSystem == null) {
-				_activeLinearSystem = generateLinearSystem(difficulty);
-				goForward = true;
-			}
-			_ps.printf("%s", getHelpString(toComment, forbidZeroOut));
-			if (toComment == CommandType._StandardCommandTypes) {
-				toComment = CommandType._None;
-			}
-			_ps.printf("\n%s\n", _activeLinearSystem.getString());
-			final String line = _sysInScanner.nextLine();
-			final Command command = new Command(_activeLinearSystem, line, forbidZeroOut);
-			if (command._commandType == null) {
-				_errPs.printf(">>>\"%s\"<<< has bad syntax.\n", line);
-				toComment = CommandType._StandardCommandTypes;
-				continue;
-			}
-			if (command != null) {
-				final CommandType commandType = command._commandType;
-				switch (commandType) {
-				case ADD:
-				case SUBTRACT:
-					_activeLinearSystem.addOrSubtract(command);
-					break;
-				case ZERO:
-					/** Use A to Zero out x in B", "A x :: B */
-					if (!_activeLinearSystem.zeroOut(command)) {
-						final int iA = command._equtn0Idx;
-						final String equtnAName = _activeLinearSystem.getEqutnName(iA);
-						final int j = command._vbl0Idx;
-						final String vblName = _activeLinearSystem.getVblName(j);
-						_errPs.printf("""
-								>>>
-								Cannot use %s to zero out %s in any equtn.
-								The multiplier of %s in %s is 0.0 and this
-								would lead to a divide by zero.
-								<<<
-								""", //
-								equtnAName, vblName, vblName, equtnAName);
-						toComment = CommandType._StandardCommandTypes;
-					}
-					break;
-				case MULTIPLY:
-				case DIVIDE:
-					_activeLinearSystem.multiplyOrDivide(command);
-					break;
-				case SWITCH_EQUTNS:
-					_activeLinearSystem.switchEqutns(command);
-					break;
-				case SWITCH_VBLS:
-					_activeLinearSystem.switchVbls(command);
-					break;
-				case TELL:
-				case SET:
-				case UNSET:
-					/** Both doTell and setOrUnset will restore they system if infeasible. */
-					final LsStatus lsStatus;
-					if (commandType == CommandType.TELL) {
-						lsStatus = _activeLinearSystem.doTell(command);
-						goForward = false;
-					} else {
-						lsStatus = _activeLinearSystem.setOrUnset(command);
-						if (goForward && lsStatus == LsStatus.INFEASIBLE) {
-							goForward = false;
-						}
-					}
-					switch (lsStatus) {
-					case FEASIBLE:
-						break;
-					case SOLVED:
-					case INFEASIBLE:
-					default:
-						if (lsStatus == LsStatus.SOLVED && goForward) {
-							_ps.printf("\n%s", selectRemark(_rmb.getRng(), lsStatus));
-						} else {
-							_errPs.printf("\n%s", selectRemark(_rmb.getRng(), lsStatus));
-						}
-						difficulty = (goForward && lsStatus == LsStatus.SOLVED) ? difficulty.getHarder()
-								: difficulty.getEasier();
-						_activeLinearSystem = generateLinearSystem(difficulty);
-						goForward = true;
-						break;
-					}
-					break;
-				case HELP:
-					toComment = CommandType._StandardCommandTypes;
-					continue;
-				case QUIT:
-				default:
-					return;
-				}
-			}
-		}
 	}
 
 	public static void main(final String[] args) {

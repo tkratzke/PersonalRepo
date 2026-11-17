@@ -3,6 +3,7 @@ package com.skagit.linearSystemGenerator;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.Random;
 
 import com.skagit.advMath.mitLinearAlgebra.PaqLu;
 import com.skagit.utils.CombinatoricTools;
@@ -21,6 +22,12 @@ public class LinearSystem {
 	final MyFraction[] _guessedValues;
 	final MyFraction[] _rhs;
 	final Difficulty _difficulty;
+	LsStatus _lsStatus;
+	boolean _haveSeenInfeasible;
+	boolean _haveSeenDoTell;
+	boolean _askingForHelp;
+	boolean _askingToQuit;
+	boolean _askingToGiveUp;
 
 	public LinearSystem(final double[][] coefsDbl, final double[] rhsDbl, final Difficulty difficulty) {
 		final MyFraction[][] coefs = LinearSystemStatics.toFractions(coefsDbl);
@@ -50,6 +57,12 @@ public class LinearSystem {
 		_guessedValues = linearSystem._guessedValues;
 		_rhs = linearSystem._rhs;
 		_difficulty = difficulty;
+		_lsStatus = linearSystem._lsStatus;
+		_haveSeenInfeasible = linearSystem._haveSeenInfeasible;
+		_haveSeenDoTell = linearSystem._haveSeenDoTell;
+		_askingForHelp = linearSystem._askingForHelp;
+		_askingToQuit = linearSystem._askingToQuit;
+		_askingToGiveUp = linearSystem._askingToGiveUp;
 	}
 
 	public LinearSystem(String[] equtnNames, final MyFraction[][] coefs, int[] permForEqutns, final MyFraction[] rhs,
@@ -92,11 +105,16 @@ public class LinearSystem {
 		}
 		_permForVbls = CombinatoricTools.getInitial(n);
 		_difficulty = difficulty;
+		_lsStatus = LsStatus.FEASIBLE;
+		_haveSeenInfeasible = false;
+		_haveSeenDoTell = false;
+		_askingForHelp = true;
+		_askingToQuit = false;
+		_askingToGiveUp = false;
 	}
 
 	PaqLu getPaqLu() {
 		final LinearSystem permuted = permute();
-
 		final MyFraction[][] coefs = permuted._coefs;
 		final int m = coefs.length, n = coefs[0].length;
 		final MyFraction[] guessedValues = permuted._guessedValues;
@@ -359,7 +377,7 @@ public class LinearSystem {
 		final StringBuilder bigSb = new StringBuilder();
 		for (int i0 = 0; i0 < mRealEqutns; ++i0) {
 			if (i0 == 0) {
-				bigSb.append(String.format("\n   The Equations and RHS (%s):\n", miscSb.toString()));
+				bigSb.append(String.format("   The Equations and RHS (%s):\n", miscSb.toString()));
 			} else {
 				bigSb.append('\n');
 			}
@@ -426,7 +444,7 @@ public class LinearSystem {
 		return (j < 0 || j >= _vblNames.length) ? null : _vblNames[j];
 	}
 
-	public LsStatus getLsStatus() {
+	private LsStatus computeLsStatus() {
 		final int m = _coefs.length, n = _coefs[0].length;
 		final BitSet realVbls = new BitSet(n);
 		for (int j = 0; j < n; ++j) {
@@ -473,7 +491,7 @@ public class LinearSystem {
 	}
 
 	/** B += 2A or B -= 2A. */
-	void addOrSubtract(final Command command) {
+	void doAddOrSubtract(final Command command) {
 		final int iB = command._equtn0Idx;
 		final int iA = command._equtn1Idx;
 		final Operator operator = command._commandType._operator;
@@ -498,7 +516,7 @@ public class LinearSystem {
 	}
 
 	/** Use A to Zero out x in B", "A x :: B */
-	boolean zeroOut(final Command command) {
+	boolean doZeroOut(final Command command) {
 		final int iA = command._equtn0Idx;
 		final int jX = command._vbl0Idx;
 		if (_coefs[iA][jX]._num == 0) {
@@ -519,7 +537,7 @@ public class LinearSystem {
 	}
 
 	/** A *= 2 or A /= 2. */
-	void multiplyOrDivide(final Command command) {
+	void doMultiplyOrDivide(final Command command) {
 		final int iA = command._equtn0Idx;
 		final Operator operator = command._commandType._operator;
 		final MyFraction frctn = command._frctn;
@@ -545,7 +563,7 @@ public class LinearSystem {
 	 * A <-> B: If _orderToPrintEqutns[0] = 3, then equation #3 is printed first.
 	 * </pre>
 	 */
-	void switchEqutns(final Command command) {
+	void doSwitchEqutns(final Command command) {
 		final int iA = command._equtn0Idx;
 		final int iB = command._equtn1Idx;
 		final int m = _coefs.length;
@@ -566,7 +584,7 @@ public class LinearSystem {
 		_permForEqutns[kB] = iA;
 	}
 
-	void switchVbls(final Command command) {
+	void doSwitchVbls(final Command command) {
 		final int jA = command._vbl0Idx;
 		final int jB = command._vbl1Idx;
 		final int n = _coefs[0].length;
@@ -587,12 +605,14 @@ public class LinearSystem {
 		_permForVbls[kB] = jA;
 	}
 
-	LsStatus doTell(final Command command) {
+	void doTell(final Command command) {
+		if (_lsStatus != LsStatus.FEASIBLE) {
+			return;
+		}
 		final int m = _coefs.length, n = _coefs[0].length;
 		final int j0 = command._vbl0Idx;
 
-		final MyFraction oldGuess = _guessedValues[j0];
-		setOrUnset(j0, null);
+		doSetOrUnset(j0, null);
 		final BitSet realVbls = new BitSet(n);
 		realVbls.clear();
 		for (int j = 0; j < n; ++j) {
@@ -631,33 +651,30 @@ public class LinearSystem {
 		final PaqLu paqLu = new PaqLu(LinearSystemStatics.toDouble(realCoefs), PaqLu.Pivoting.Full);
 		final double[][] xRows = paqLu.solve(rhsRows);
 		final double d = xRows[keyJ][0];
-		if (Double.isFinite(d)) {
-			/**
-			 * Found a legitimate value for j. Leave it set and we are either FEASIBLE or
-			 * SOLVED.
-			 */
-			setOrUnset(j0, new MyFraction(d, LinearSystemStatics._ThresholdForFraction));
-			for (int j = 0; j < n; ++j) {
-				if (_guessedValues[j] == null) {
-					return LsStatus.FEASIBLE;
-				}
-			}
-			return LsStatus.SOLVED;
-		}
-		/** Undo the try and return INFEASIBLE. */
-		setOrUnset(j0, oldGuess);
-		return LsStatus.INFEASIBLE;
+		doSetOrUnset(j0, new MyFraction(d, LinearSystemStatics._ThresholdForFraction));
+		_haveSeenDoTell = true;
 	}
 
-	LsStatus setOrUnset(final Command command) {
-		return setOrUnset(command._vbl0Idx, command._frctn);
+	void doSetOrUnset(final Command command) {
+		doSetOrUnset(command._vbl0Idx, command._frctn);
 	}
 
-	private LsStatus setOrUnset(final int j, final MyFraction frctn) {
+	void doGiveUp(final Command command) {
+		_askingToGiveUp = true;
+	}
+
+	void doHelp(final Command command) {
+		turnOnAskingForHelp();
+	}
+
+	void doQuit(final Command command) {
+		_askingToQuit = true;
+	}
+
+	private void doSetOrUnset(final int j, final MyFraction frctn) {
 		final int m = _coefs.length;
 		final MyFraction delta = new MyFraction(0L, 1L);
 		final MyFraction oldGuess = _guessedValues[j];
-
 		if (oldGuess != null) {
 			delta.add(oldGuess, /* operateOnSelf= */true);
 		}
@@ -668,18 +685,69 @@ public class LinearSystem {
 			_rhs[i].add(delta.multiply(_coefs[i][j], /* operateOnSelf= */false), /* operateOnSelf= */true);
 		}
 		_guessedValues[j] = frctn;
-		/**
-		 * If frctn is not null, we might be INFEASIBLE and we'll back off. If it is
-		 * null, we know that we are FEASIBLE and not SOLVED.
-		 */
 		if (frctn != null) {
-			final LsStatus lsStatus = getLsStatus();
-			if (lsStatus == LsStatus.INFEASIBLE) {
-				setOrUnset(j, oldGuess);
+			_lsStatus = computeLsStatus();
+			if (_lsStatus == LsStatus.INFEASIBLE) {
+				_haveSeenInfeasible = true;
 			}
-			return lsStatus;
 		}
-		return LsStatus.FEASIBLE;
+	}
+
+	void turnOnAskingForHelp() {
+		_askingForHelp = true;
+	}
+
+	void turnOffAskingForHelp() {
+		_askingForHelp = false;
+	}
+
+	String selectRemark(final Random r) {
+		final boolean positive = !_askingToGiveUp && !_haveSeenDoTell && !_haveSeenInfeasible;
+		if (positive) {
+			return LinearSystemStatics._RemarksForSolved[r.nextInt(LinearSystemStatics._RemarksForSolved.length)];
+		}
+		return LinearSystemStatics._RemarksForInfeasible[r.nextInt(LinearSystemStatics._RemarksForInfeasible.length)];
+	}
+
+	boolean isSolved() {
+		return _lsStatus == LsStatus.SOLVED;
+	}
+
+	final private static String _Clmn0Hdr = "To do this";
+	final private static int _Clmn0HdrLen = _Clmn0Hdr.length();
+	final private static String _Clmn1Hdr = "Enter this";
+	final private static int _Clmn1HdrLen = _Clmn1Hdr.length();
+	final private static String _StringBetweenClmns = "   ";
+
+	String getHelpString() {
+		if (!_askingForHelp) {
+			return "";
+		}
+		int clmn0Len = _Clmn0Hdr.length();
+		int clmn1Len = _Clmn1Hdr.length();
+		for (final CommandType commandType : CommandType._StandardCommandTypes) {
+			clmn0Len = Math.max(clmn0Len, commandType._englishExample.length());
+			clmn1Len = Math.max(clmn1Len, commandType._commandExample.length());
+		}
+		final int ltPad0 = (clmn0Len - _Clmn0HdrLen) / 2;
+		String fullLtHdr = (ltPad0 > 0 ? StringUtilities.padLeft("", ltPad0) : "") + _Clmn0Hdr;
+		final int rtPad0 = clmn0Len - fullLtHdr.length();
+		if (rtPad0 > 0) {
+			fullLtHdr += StringUtilities.padRight("", rtPad0);
+		}
+		final StringBuilder s = new StringBuilder("  ").append(fullLtHdr).append(_StringBetweenClmns);
+		final int ltPad1 = (clmn1Len - _Clmn1HdrLen) / 2;
+		final String fullRtHdr = (ltPad1 > 0 ? StringUtilities.padLeft("", ltPad1) : "") + _Clmn1Hdr;
+		s.append(fullRtHdr);
+		for (final CommandType commandType : CommandType._StandardCommandTypes) {
+			final String f = "\n  %-" + clmn0Len + "s%s%s";
+			s.append(String.format(f, commandType._englishExample, _StringBetweenClmns, commandType._commandExample));
+		}
+		return s.toString();
+	}
+
+	public boolean getEasier() {
+		return _haveSeenDoTell || _haveSeenInfeasible || _askingToGiveUp;
 	}
 
 }
