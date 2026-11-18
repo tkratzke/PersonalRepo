@@ -12,7 +12,6 @@ import com.skagit.advMath.mitLinearAlgebra.RandomMatrixBuilder;
 import com.skagit.utils.CombinatoricTools;
 import com.skagit.utils.MyFraction;
 import com.skagit.utils.NumericalRoutines;
-import com.skagit.utils.PermutationTools;
 import com.skagit.utils.ResourcesLister0;
 import com.skagit.utils.StaticUtilities;
 
@@ -215,21 +214,21 @@ class LinearSystemStatics {
 	public static double[][] generateLinearSystemDbl(final RandomMatrixBuilder rmb, final Difficulty difficulty) {
 		final int m = difficulty._m;
 		final Random r = rmb.getRng();
-		final double[][] coefs0;
+		final double[][] coefs;
 		if (difficulty._singular) {
 			final boolean extraClmn = m == 1 ? true : r.nextBoolean();
 			if (extraClmn) {
 				final int[] indClmns = CombinatoricTools.getInitial(m);
-				coefs0 = rmb.buildMatrix(m, m + 1, indClmns, /* upperTriangular= */false);
+				coefs = rmb.buildMatrix(m, m + 1, indClmns, /* upperTriangular= */false);
 			} else {
 				final int[] indClmns = CombinatoricTools.getInitial(m - 1);
-				coefs0 = rmb.buildMatrix(m, m, indClmns, /* upperTriangular= */false);
+				coefs = rmb.buildMatrix(m, m, indClmns, /* upperTriangular= */false);
 			}
 		} else {
 			final int ezM = difficulty._ezM;
 			if (ezM == 0) {
 				final int[] indClmns = CombinatoricTools.getInitial(m);
-				coefs0 = rmb.buildMatrix(m, m, indClmns, /* upperTriangular= */false);
+				coefs = rmb.buildMatrix(m, m, indClmns, /* upperTriangular= */false);
 			} else {
 				/**
 				 * <pre>
@@ -267,32 +266,21 @@ class LinearSystemStatics {
 					final int[] bottomRightIndClmns = CombinatoricTools.getInitial(ezM);
 					bottomRight = rmb.buildMatrix(ezM, ezM, bottomRightIndClmns, /* upperTriangular= */true);
 				}
-				coefs0 = new double[m][];
+				coefs = new double[m][];
 				for (int i = 0; i < m; ++i) {
-					coefs0[i] = new double[m];
+					coefs[i] = new double[m];
 					for (int j = 0; j < m; ++j) {
 						if (i < mTopLeft && j < mTopLeft) {
-							coefs0[i][j] = topLeft[i][j];
+							coefs[i][j] = topLeft[i][j];
 						} else if (i >= mTopLeft && j >= mTopLeft) {
-							coefs0[i][j] = bottomRight[i - mTopLeft][j - mTopLeft];
+							coefs[i][j] = bottomRight[i - mTopLeft][j - mTopLeft];
 						} else if (i >= mTopLeft && j < mTopLeft) {
-							coefs0[i][j] = 0d;
+							coefs[i][j] = 0d;
 						} else {
-							coefs0[i][j] = topRight[i][j - mTopLeft];
+							coefs[i][j] = topRight[i][j - mTopLeft];
 						}
 					}
 				}
-			}
-		}
-		/** Just for fun, permute the coefs. */
-		final int[] rowPerm = PermutationTools.randomPermutation(m, r);
-		final int n = coefs0[0].length;
-		final int[] clmnPerm = PermutationTools.randomPermutation(n, r);
-		final double[][] coefs = new double[m][];
-		for (int i = 0; i < m; ++i) {
-			coefs[i] = new double[n];
-			for (int j = 0; j < n; ++j) {
-				coefs[i][j] = coefs0[rowPerm[i]][clmnPerm[j]];
 			}
 		}
 		return coefs;

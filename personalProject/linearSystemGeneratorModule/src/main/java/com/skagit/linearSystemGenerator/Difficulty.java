@@ -55,23 +55,26 @@ class Difficulty implements Comparable<Difficulty> {
 		singular0 = singular0 != null ? singular0 : false;
 
 		final ArrayList<Difficulty> difficultyList = new ArrayList<>();
-		final String s = ((String) properties.get("Standard_Difficulties")).trim();
-		final String[] bigFields = s.split("\\n+");
-		if (bigFields != null) {
-			final int nFields = bigFields.length;
-			for (int k = 0; k < nFields; ++k) {
-				final String bigField = bigFields[k];
-				final String[] littleFields = bigField.split("\\s+");
-				if (littleFields.length == 3) {
-					Integer m = null;
-					Integer ezM = null;
-					Boolean singular = null;
-					try {
-						m = Integer.parseInt(littleFields[0]);
-						ezM = Integer.parseInt(littleFields[1]);
-						singular = Boolean.parseBoolean(littleFields[2]);
-						difficultyList.add(new Difficulty(m, ezM, singular, difficultyList.size()));
-					} catch (final NumberFormatException e) {
+		final String s0 = (String) properties.get("Standard_Difficulties");
+		if (s0 != null) {
+			final String s = s0.trim();
+			final String[] bigFields = s.split("\\n+");
+			if (bigFields != null) {
+				final int nFields = bigFields.length;
+				for (int k = 0; k < nFields; ++k) {
+					final String bigField = bigFields[k];
+					final String[] littleFields = bigField.split("\\s+");
+					if (littleFields.length == 3) {
+						Integer m = null;
+						Integer ezM = null;
+						Boolean singular = null;
+						try {
+							m = Integer.parseInt(littleFields[0]);
+							ezM = Integer.parseInt(littleFields[1]);
+							singular = Boolean.parseBoolean(littleFields[2]);
+							difficultyList.add(new Difficulty(m, ezM, singular, difficultyList.size()));
+						} catch (final NumberFormatException e) {
+						}
 					}
 				}
 			}
