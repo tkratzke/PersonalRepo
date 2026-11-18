@@ -32,8 +32,9 @@ class Difficulty implements Comparable<Difficulty> {
 			try (InputStream in = clazz.getResourceAsStream(relativePath)) {
 				properties.load(in);
 				if (m0 == null) {
-					final String s = ((String) properties.get("Initial")).trim();
-					if (s != null) {
+					final String s0 = ((String) properties.get("Initial"));
+					if (s0 != null) {
+						final String s = s0.trim();
 						final String[] fields = s.split("\\s+");
 						if (fields.length == 3) {
 							try {
@@ -83,8 +84,10 @@ class Difficulty implements Comparable<Difficulty> {
 		Arrays.sort(_StandardDifficulties);
 		if (_StandardDifficulties.length > 0) {
 			_InitialDifficulty = _StandardDifficulties[0];
-		} else {
+		} else if (m0 != null && ezM0 != null && singular0 != null) {
 			_InitialDifficulty = new Difficulty(m0, ezM0, singular0, -1);
+		} else {
+			_InitialDifficulty = new Difficulty(2, 1, false, -1);
 		}
 	}
 

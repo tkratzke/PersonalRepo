@@ -58,10 +58,16 @@ public class Command {
 
 	public Command(final LinearSystem linearSystem, String line) {
 		_linearSystem = linearSystem;
-		/** Strip outside spaces and the ending period if it's there. */
-		line = line.trim();
-		final int lineLen = line.length();
+		/** Clean up line so operators can easily be searched for. */
 
+		line = line.trim();
+		line = line.replaceAll("\\.$", "");
+		line = line.replaceAll("\\s*([/\\*+-]+)\\s*=\\s*", "$1=");
+		line = line.replaceAll("\\s*=\\s*\\?\\s*", "=?");
+		line = line.replaceAll("\\s*=\\s*\\?\\s*", "=?");
+		line = line.replaceAll("\\s*<\\s*-\\s*>\\s*", "<->");
+		line = line.replaceAll("\\s*:\\s+:\\*", "::");
+		final int lineLen = line.length();
 		if (lineLen == 0) {
 			/** Error. */
 			_commandType = null;
@@ -69,12 +75,9 @@ public class Command {
 			_frctn = null;
 			return;
 		}
-		if (line.charAt(lineLen - 1) == '.') {
-			line = line.substring(0, lineLen - 1);
-		}
 		/**
-		 * Do we have an operation, and if so, where in the string? Choose the operator
-		 * with the longest _s, to distinguish between, eg, = and /=
+		 * Do we have an operator, and if so, where is it in the string? Choose the
+		 * operator with the longest _s, to distinguish between, eg, = and /=
 		 */
 		Operator operator = null;
 		for (final Operator operator0 : Operator.values()) {
@@ -294,10 +297,5 @@ public class Command {
 		_commandType = null;
 		_equtn0Idx = _equtn1Idx = _vbl0Idx = _vbl1Idx = -1;
 		_frctn = null;
-	}
-
-	public static void main(final String[] args) {
-		final MyFraction myFraction = new MyFraction("-2 3 / 4");
-		System.out.print(myFraction.getString(/* printFloat= */true));
 	}
 }
