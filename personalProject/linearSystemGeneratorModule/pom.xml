@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>com.skagit</groupId>
 		<artifactId>personalProject</artifactId>
-		<version>${revision}</version>
+		<version>1.0</version>
 	</parent>
 	<artifactId>linearSystemGeneratorModule</artifactId>
 	<name>linearSystemGeneratorModule</name>
@@ -14,7 +14,7 @@
 		<dependency>
 			<groupId>com.skagit</groupId>
 			<artifactId>advMathModule</artifactId>
-			<version>${revision}</version>
+			<version>${personalProject.version}</version>
 		</dependency>
 	</dependencies>
 

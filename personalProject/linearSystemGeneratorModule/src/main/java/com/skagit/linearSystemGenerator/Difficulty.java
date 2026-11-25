@@ -7,7 +7,7 @@ import java.util.Arrays;
 import java.util.Properties;
 
 import com.skagit.utils.CombinatoricTools;
-import com.skagit.utils.ResourcesLister0;
+import com.skagit.utils.ResourcesLister;
 import com.skagit.utils.StaticUtilities;
 
 class Difficulty implements Comparable<Difficulty> {
@@ -17,8 +17,14 @@ class Difficulty implements Comparable<Difficulty> {
 	static {
 		final Class<?> clazz = StaticUtilities.getMyClass();
 		final Package pckg = clazz.getPackage();
-		final ArrayList<ResourcesLister0.CpEntryAndRelativePath> cpEntryAndRelativePaths1 = ResourcesLister0
+		ResourcesLister.getRelativeResourceNamePluses(/* logger= */null, pckg, null, /* lookInDirs= */true,
+				/* lookInJars= */true);
+		final ArrayList<ResourcesLister0.CpEntryAndRelativePath> cpEntryAndRelativePaths = ResourcesLister
 				.getCpEntryAndRelativePaths(pckg, "Difficulty.properties", true, true);
+		System.out.printf("\n%d CpEntryAndRelativePaths\n", cpEntryAndRelativePaths.size());
+		for (final ResourcesLister0.CpEntryAndRelativePath cpEntryAndRelativePath : cpEntryAndRelativePaths) {
+			System.out.println(cpEntryAndRelativePath.getString());
+		}
 		final Properties properties = new Properties();
 
 		/** InitialDifficulty parameters: */
@@ -26,7 +32,7 @@ class Difficulty implements Comparable<Difficulty> {
 		Integer ezM0 = null;
 		Boolean singular0 = null;
 
-		for (final ResourcesLister0.CpEntryAndRelativePath cpEntryAndRelativePath : cpEntryAndRelativePaths1) {
+		for (final ResourcesLister0.CpEntryAndRelativePath cpEntryAndRelativePath : cpEntryAndRelativePaths) {
 			String relativePath = cpEntryAndRelativePath._relativePath;
 			relativePath = "/" + relativePath.replace('\\', '/');
 			try (InputStream in = clazz.getResourceAsStream(relativePath)) {
@@ -191,14 +197,14 @@ class Difficulty implements Comparable<Difficulty> {
 	}
 
 	public static void main(final String[] args) {
-		final int nStandardDifficulties = _StandardDifficulties.length;
-		for (Difficulty difficulty = _StandardDifficulties[nStandardDifficulties - 1];;) {
-			System.out.println(difficulty.getString());
-			final Difficulty oldDifficulty = difficulty;
-			difficulty = oldDifficulty.getEasier();
-			if (difficulty == oldDifficulty) {
-				break;
-			}
+		final Class<?> clazz = StaticUtilities.getMyClass();
+		try (InputStream in0 = clazz.getResourceAsStream("Difficulty2.properties")) {
+			final Properties props = new Properties();
+			props.load(in0);
+			props.list(System.out);
+		} catch (final IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 

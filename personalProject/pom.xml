@@ -6,17 +6,17 @@
 
 	<groupId>com.skagit</groupId>
 	<artifactId>personalProject</artifactId>
-	<version>${revision}</version>
+	<version>1.0</version>
 	<packaging>pom</packaging>
 
 	<name>personalProject</name>
 	<url>http://www.example.com</url>
 
 	<properties>
-		<revision>1.0</revision>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.release>21</maven.compiler.release>
-		<utils.Project.Version>1.0</utils.Project.Version>
+		<utilsProject.version>1.0</utilsProject.version>
+		<personalProject.version>1.0</personalProject.version>
 	</properties>
 
 	<dependencyManagement>
@@ -28,6 +28,18 @@
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
+			<dependency>
+				<groupId>com.skagit</groupId>
+				<artifactId>commonsLibsModule</artifactId>
+				<version>${utilsProject.version}</version>
+				<scope>compile</scope>
+			</dependency>
+		<dependency>
+			<groupId>com.skagit</groupId>
+			<artifactId>mathLibsModule</artifactId>
+			<version>${utilsProject.version}</version>
+			<scope>compile</scope>
+		</dependency>
 		</dependencies>
 	</dependencyManagement>
 
@@ -43,11 +55,11 @@
 			<artifactId>junit-jupiter-params</artifactId>
 			<scope>test</scope>
 		</dependency>
-		<dependency>
-			<groupId>com.skagit</groupId>
-			<artifactId>commonsLibsModule</artifactId>
-			<version>${utils.Project.Version}</version>
-		</dependency>
+			<dependency>
+				<groupId>com.skagit</groupId>
+				<artifactId>commonsLibsModule</artifactId>
+				<scope>compile</scope>
+			</dependency>
 	</dependencies>
 
 	<build>

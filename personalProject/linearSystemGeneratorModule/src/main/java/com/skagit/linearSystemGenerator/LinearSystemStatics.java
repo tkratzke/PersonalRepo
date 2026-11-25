@@ -12,7 +12,7 @@ import com.skagit.advMath.mitLinearAlgebra.RandomMatrixBuilder;
 import com.skagit.utils.CombinatoricTools;
 import com.skagit.utils.MyFraction;
 import com.skagit.utils.NumericalRoutines;
-import com.skagit.utils.ResourcesLister0;
+import com.skagit.utils.ResourcesLister;
 import com.skagit.utils.StaticUtilities;
 
 class LinearSystemStatics {
@@ -32,8 +32,8 @@ class LinearSystemStatics {
 	static {
 		final Class<?> clazz = StaticUtilities.getMyClass();
 		final Package pckg = clazz.getPackage();
-		final ArrayList<ResourcesLister0.CpEntryAndRelativePath> cpEntryAndRelativePaths1 = ResourcesLister0
-				.getCpEntryAndRelativePaths(pckg, "StartUp.properties", true, true);
+		final ArrayList<ResourcesLister.ResourceNamePlus> resourceNamePluses = ResourcesLister
+				.getRelativeResourceNamePluses(pckg, "StartUp.properties", true, true);
 		final Properties properties = new Properties();
 
 		/** Generating linear systems: */
@@ -54,8 +54,8 @@ class LinearSystemStatics {
 		final ArrayList<String> forInfeasible = new ArrayList<>();
 		final ArrayList<String> forSolved = new ArrayList<>();
 
-		for (final ResourcesLister0.CpEntryAndRelativePath cpEntryAndRelativePath : cpEntryAndRelativePaths1) {
-			String relativePath = cpEntryAndRelativePath._relativePath;
+		for (final ResourcesLister.ResourceNamePlus resourceNamePlus : resourceNamePluses) {
+			String relativePath = resourceNamePlus._relativePath;
 			relativePath = "/" + relativePath.replace('\\', '/');
 			try (InputStream in = clazz.getResourceAsStream(relativePath)) {
 				properties.load(in);
@@ -99,7 +99,7 @@ class LinearSystemStatics {
 					equtnNamesString = properties.getProperty("equationNamesString");
 				}
 				if (vblNamesString == null) {
-					vblNamesString = properties.getProperty("vblNamesString");
+					vblNamesString = properties.getProperty("variableNamesString");
 				}
 
 				final String sInfeasible = (String) properties.get("Infeasible");
