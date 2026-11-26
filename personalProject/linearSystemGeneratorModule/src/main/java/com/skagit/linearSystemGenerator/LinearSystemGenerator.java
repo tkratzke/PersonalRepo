@@ -1,6 +1,5 @@
 package com.skagit.linearSystemGenerator;
 
-import java.io.PrintStream;
 import java.util.Random;
 import java.util.Scanner;
 
@@ -14,8 +13,6 @@ public class LinearSystemGenerator {
 	final int _loNudge;
 	final int _hiNudge;
 	final RandomMatrixBuilder _rmb;
-	final PrintStream _ps;
-	final PrintStream _errPs;
 	Scanner _sysInScanner;
 	LinearSystem _linearSystem;
 
@@ -26,8 +23,6 @@ public class LinearSystemGenerator {
 		_loMult = loMult;
 		_hiMult = hiMult;
 		_rmb = new RandomMatrixBuilder(seed, loMult, hiMult, loNudge, hiNudge);
-		_ps = System.out;
-		_errPs = System.err;
 		_sysInScanner = sysInScanner;
 		_linearSystem = null;
 	}
@@ -36,30 +31,31 @@ public class LinearSystemGenerator {
 		_linearSystem = getNextLinearSystem();
 		for (;;) {
 			if (_linearSystem._askingToQuit) {
+				System.out.printf("\nExiting Program.\n");
 				return;
 			}
 			final Random r = _rmb.getRng();
 			if (_linearSystem._askingToGiveUp || _linearSystem.isSolved()) {
-				_ps.printf("\nAnswers:");
+				System.out.printf("\nAnswers:");
 				final MyFraction[] answer = _linearSystem.completeASolution();
 				final int n = answer.length;
 				for (int j = 0; j < n; ++j) {
 					System.out.printf("\n%s = %s", _linearSystem.getVblName(j),
 							answer[j].getString(/* printFloat= */false));
 				}
-				_ps.printf("\n\n\n%s\n", _linearSystem.selectRemark(r));
+				System.out.printf("\n\n\n%s\n", _linearSystem.selectRemark(r));
 				_linearSystem = getNextLinearSystem();
 			}
 			final String helpString = _linearSystem.getHelpString();
 			if (helpString != null && helpString.length() > 0) {
-				_ps.printf("%s\n", helpString);
+				System.out.printf("%s\n", helpString);
 				_linearSystem.turnOffAskingForHelp();
 			}
-			_ps.printf("\n%s\n", _linearSystem.getString());
+			System.out.printf("\n%s\n", _linearSystem.getString());
 			final String line = _sysInScanner.nextLine();
 			final Command command = new Command(_linearSystem, line);
 			if (command._commandType == null) {
-				_errPs.printf(">>>\"%s\"<<< has bad syntax.\n", line);
+				System.err.printf(">>>\"%s\"<<< has bad syntax.\n", line);
 				_linearSystem.turnOnAskingForHelp();
 				continue;
 			}
@@ -77,7 +73,7 @@ public class LinearSystemGenerator {
 						final String equtnAName = _linearSystem.getEqutnName(iA);
 						final int j = command._vbl0Idx;
 						final String vblName = _linearSystem.getVblName(j);
-						_errPs.printf("""
+						System.err.printf("""
 								>>>
 								Cannot use %s to zero out %s in any equtn.
 								The multiplier of %s in %s is 0.0 and this
@@ -121,10 +117,11 @@ public class LinearSystemGenerator {
 	private LinearSystem getNextLinearSystem() {
 		final Difficulty difficulty;
 		if (_linearSystem == null) {
-			difficulty = Difficulty._InitialDifficulty;
+			difficulty = Difficulty._GivenDifficulties[0];
 		} else {
-			difficulty = _linearSystem.getEasier() ? _linearSystem._difficulty.getEasier()
-					: _linearSystem._difficulty.getHarder();
+			difficulty = _linearSystem.getEasier() ? //
+					_linearSystem._difficulty.getEasier() : //
+					_linearSystem._difficulty.getHarder();
 		}
 		final Random r = _rmb.getRng();
 		final double[][] coefsDbl = LinearSystemStatics.generateLinearSystemDbl(_rmb, difficulty);
@@ -155,8 +152,6 @@ public class LinearSystemGenerator {
 			final LinearSystemGenerator linearSystemGenerator = new LinearSystemGenerator(seed, loMult, hiMult, loNudge,
 					hiNudge, sysInScanner);
 			linearSystemGenerator.mainLoop();
-			linearSystemGenerator._ps.println();
-			linearSystemGenerator._ps.println("Exiting Program");
 		} catch (final Exception e) {
 			e.printStackTrace();
 		}

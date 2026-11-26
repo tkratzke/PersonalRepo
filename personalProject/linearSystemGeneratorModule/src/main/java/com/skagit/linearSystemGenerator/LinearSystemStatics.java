@@ -1,11 +1,18 @@
 package com.skagit.linearSystemGenerator;
 
+import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Properties;
 import java.util.Random;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.stream.Stream;
 
 import com.skagit.advMath.mitLinearAlgebra.PaqLu;
 import com.skagit.advMath.mitLinearAlgebra.RandomMatrixBuilder;
@@ -32,74 +39,92 @@ class LinearSystemStatics {
 	static {
 		final Class<?> clazz = StaticUtilities.getMyClass();
 		final Package pckg = clazz.getPackage();
-		final ArrayList<ResourcesLister.ResourceNamePlus> resourceNamePluses = ResourcesLister
-				.getRelativeResourceNamePluses(pckg, "StartUp.properties", true, true);
 		final Properties properties = new Properties();
+		final ResourcesLister.Resource[] rsrcs = ResourcesLister.getRsrcs(pckg, "StartUp.properties");
+		Stream.of(rsrcs).forEach(rsrc -> {
+			final Path path = rsrc.getFilePath();
+			if (path != null) {
+				try (FileInputStream is = new FileInputStream(path.toFile())) {
+					properties.load(is);
+				} catch (final IOException e) {
+					e.printStackTrace();
+				}
+			} else {
+				try (JarFile jarFile = new JarFile(rsrc._cpEntry.toFile())) {
+					final JarEntry entry = jarFile.getJarEntry(rsrc._rltvPath);
+					try (InputStream is = jarFile.getInputStream(entry);
+							BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
+						properties.load(reader);
+					}
+				} catch (final IOException e) {
+				}
+			}
+		});
 
 		/** Generating linear systems: */
-		Long seed = null;
-		Integer loMult = null;
-		Integer hiMult = null;
-		Integer loNudge = null;
-		Integer hiNudge = null;
+		final long[] seed = { Long.MIN_VALUE };
+		final int[] loMult = { Integer.MIN_VALUE };
+		final int[] hiMult = { Integer.MIN_VALUE };
+		final int[] loNudge = { Integer.MIN_VALUE };
+		final int[] hiNudge = { Integer.MIN_VALUE };
 
 		/** Fraction determination: */
-		Double thresholdForFraction = null;
+		final double[] thresholdForFraction = { Double.NaN };
 
 		/** Equation and variable names. */
-		String equtnNamesString = null;
-		String vblNamesString = null;
+		final String[] equtnNamesString = { null };
+		final String[] vblNamesString = { null };
 
 		/** The remarks for infeasible and solved problems. */
 		final ArrayList<String> forInfeasible = new ArrayList<>();
 		final ArrayList<String> forSolved = new ArrayList<>();
 
-		for (final ResourcesLister.ResourceNamePlus resourceNamePlus : resourceNamePluses) {
-			String relativePath = resourceNamePlus._relativePath;
-			relativePath = "/" + relativePath.replace('\\', '/');
-			try (InputStream in = clazz.getResourceAsStream(relativePath)) {
+		Stream.of(rsrcs).forEach(rsrc -> {
+			String rltvPath = rsrc._rltvPath;
+			rltvPath = "/" + rltvPath.replace('\\', '/');
+			try (InputStream in = clazz.getResourceAsStream(rltvPath)) {
 				properties.load(in);
-				if (seed == null) {
+				if (seed[0] == Long.MIN_VALUE) {
 					try {
-						seed = Long.parseLong((String) properties.get("seed"));
+						seed[0] = Long.parseLong((String) properties.get("seed"));
 					} catch (final NumberFormatException e) {
 					}
 				}
-				if (loMult == null) {
+				if (loMult[0] == Integer.MIN_VALUE) {
 					try {
-						loMult = Integer.parseInt((String) properties.get("loMult"));
+						loMult[0] = Integer.parseInt((String) properties.get("loMult"));
 					} catch (final NumberFormatException e) {
 					}
 				}
-				if (hiMult == null) {
+				if (hiMult[0] == Integer.MIN_VALUE) {
 					try {
-						hiMult = Integer.parseInt((String) properties.get("hiMult"));
+						hiMult[0] = Integer.parseInt((String) properties.get("hiMult"));
 					} catch (final NumberFormatException e) {
 					}
 				}
-				if (loNudge == null) {
+				if (loNudge[0] == Integer.MIN_VALUE) {
 					try {
-						loNudge = Integer.parseInt((String) properties.get("loNudge"));
+						loNudge[0] = Integer.parseInt((String) properties.get("loNudge"));
 					} catch (final NumberFormatException e) {
 					}
 				}
-				if (hiNudge == null) {
+				if (hiNudge[0] == Integer.MIN_VALUE) {
 					try {
-						hiNudge = Integer.parseInt((String) properties.get("hiNudge"));
+						hiNudge[0] = Integer.parseInt((String) properties.get("hiNudge"));
 					} catch (final NumberFormatException e) {
 					}
 				}
-				if (thresholdForFraction == null) {
+				if (!Double.isFinite(thresholdForFraction[0])) {
 					try {
-						thresholdForFraction = Double.parseDouble((String) properties.get("thresholdForFraction"));
+						thresholdForFraction[0] = Double.parseDouble((String) properties.get("thresholdForFraction"));
 					} catch (final NumberFormatException e) {
 					}
 				}
-				if (equtnNamesString == null) {
-					equtnNamesString = properties.getProperty("equationNamesString");
+				if (equtnNamesString[0] == null) {
+					equtnNamesString[0] = properties.getProperty("equationNamesString");
 				}
-				if (vblNamesString == null) {
-					vblNamesString = properties.getProperty("variableNamesString");
+				if (vblNamesString[0] == null) {
+					vblNamesString[0] = properties.getProperty("variableNamesString");
 				}
 
 				final String sInfeasible = (String) properties.get("Infeasible");
@@ -118,17 +143,18 @@ class LinearSystemStatics {
 				}
 			} catch (final IOException e) {
 			}
-		}
-		_Seed = seed == null ? -1L : seed;
-		_LoMult = loMult == null ? -2 : loMult;
-		_HiMult = hiMult == null ? 8 : hiMult;
-		_LoNudge = loNudge == null ? -3 : loNudge;
-		_HiNudge = hiNudge == null ? 7 : hiNudge;
-		_ThresholdForFraction = (thresholdForFraction != null && thresholdForFraction > 0d) ? thresholdForFraction
+		});
+		_Seed = seed[0] == Long.MIN_VALUE ? -1L : seed[0];
+		_LoMult = loMult[0] == Integer.MIN_VALUE ? -2 : loMult[0];
+		_HiMult = hiMult[0] == Integer.MIN_VALUE ? 8 : hiMult[0];
+		_LoNudge = loNudge[0] == Integer.MIN_VALUE ? -3 : loNudge[0];
+		_HiNudge = hiNudge[0] == Integer.MIN_VALUE ? 7 : hiNudge[0];
+		_ThresholdForFraction = (Double.isFinite(thresholdForFraction[0]) && thresholdForFraction[0] > 0d)
+				? thresholdForFraction[0]
 				: 1.0e-3;
 
-		_EqutnNamesString = equtnNamesString == null ? "ABCDEFGHIJKLMN" : equtnNamesString;
-		_VblNamesString = vblNamesString == null ? "xyzwuvpqrstabc" : vblNamesString;
+		_EqutnNamesString = equtnNamesString[0] == null ? "ABCDEFGHIJKLMN" : equtnNamesString[0];
+		_VblNamesString = vblNamesString[0] == null ? "xyzwuvpqrstabc" : vblNamesString[0];
 
 		if (forInfeasible.isEmpty()) {
 			forInfeasible.add("This is not correct.");

@@ -1,10 +1,17 @@
 package com.skagit.linearSystemGenerator;
 
+import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Properties;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.stream.Stream;
 
 import com.skagit.utils.CombinatoricTools;
 import com.skagit.utils.ResourcesLister;
@@ -12,89 +19,79 @@ import com.skagit.utils.StaticUtilities;
 
 class Difficulty implements Comparable<Difficulty> {
 
-	final static Difficulty _InitialDifficulty;
-	final static Difficulty[] _StandardDifficulties;
+	final static Difficulty[] _GivenDifficulties;
 	static {
 		final Class<?> clazz = StaticUtilities.getMyClass();
 		final Package pckg = clazz.getPackage();
-		ResourcesLister.getRelativeResourceNamePluses(/* logger= */null, pckg, null, /* lookInDirs= */true,
-				/* lookInJars= */true);
-		final ArrayList<ResourcesLister0.CpEntryAndRelativePath> cpEntryAndRelativePaths = ResourcesLister
-				.getCpEntryAndRelativePaths(pckg, "Difficulty.properties", true, true);
-		System.out.printf("\n%d CpEntryAndRelativePaths\n", cpEntryAndRelativePaths.size());
-		for (final ResourcesLister0.CpEntryAndRelativePath cpEntryAndRelativePath : cpEntryAndRelativePaths) {
-			System.out.println(cpEntryAndRelativePath.getString());
-		}
-		final Properties properties = new Properties();
+		final ResourcesLister.Resource[] rsrcs = ResourcesLister.getRsrcs(pckg, "Difficulty.properties");
 
-		/** InitialDifficulty parameters: */
-		Integer m0 = null;
-		Integer ezM0 = null;
-		Boolean singular0 = null;
+		final ArrayList<Difficulty> difficultyList = new ArrayList<>();
 
-		for (final ResourcesLister0.CpEntryAndRelativePath cpEntryAndRelativePath : cpEntryAndRelativePaths) {
-			String relativePath = cpEntryAndRelativePath._relativePath;
-			relativePath = "/" + relativePath.replace('\\', '/');
-			try (InputStream in = clazz.getResourceAsStream(relativePath)) {
-				properties.load(in);
-				if (m0 == null) {
-					final String s0 = ((String) properties.get("Initial"));
-					if (s0 != null) {
-						final String s = s0.trim();
-						final String[] fields = s.split("\\s+");
-						if (fields.length == 3) {
-							try {
-								m0 = Integer.parseInt(fields[0]);
-								ezM0 = Integer.parseInt(fields[1]);
-								singular0 = Boolean.parseBoolean(fields[2]);
-							} catch (final NumberFormatException e) {
-								m0 = ezM0 = null;
-								singular0 = null;
+		Stream.of(rsrcs).forEach(rsrc -> {
+			if (difficultyList.isEmpty()) {
+				final Properties properties = new Properties();
+				final Path path = rsrc.getFilePath();
+				if (path != null) {
+					try (FileInputStream is = new FileInputStream(path.toFile())) {
+						properties.load(is);
+					} catch (final IOException e) {
+						e.printStackTrace();
+					}
+				} else {
+					try (JarFile jarFile = new JarFile(rsrc._cpEntry.toFile())) {
+						final JarEntry entry = jarFile.getJarEntry(rsrc._rltvPath);
+						try (InputStream is = jarFile.getInputStream(entry);
+								BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
+							properties.load(reader);
+						}
+					} catch (final IOException e) {
+					}
+				}
+				final String s0 = (String) properties.get("Given_Difficulties");
+				if (s0 != null) {
+					final String s = s0.trim();
+					final String[] bigFields = s.split("\\n+");
+					if (bigFields != null) {
+						final int nFields = bigFields.length;
+						for (int k = 0; k < nFields; ++k) {
+							final String bigField = bigFields[k];
+							final String[] littleFields = bigField.split("\\s+");
+							if (littleFields.length == 3) {
+								try {
+									final int m = Integer.parseInt(littleFields[0]);
+									final int ezM = Integer.parseInt(littleFields[1]);
+									final boolean singular = Boolean.parseBoolean(littleFields[2]);
+									difficultyList.add(new Difficulty(m, ezM, singular, difficultyList.size()));
+								} catch (final NumberFormatException e) {
+								}
 							}
 						}
 					}
 				}
-			} catch (final IOException e) {
-			}
-		}
-		m0 = (m0 != null && m0 > 0) ? m0 : 2;
-		ezM0 = (ezM0 != null && 0 <= ezM0 && ezM0 <= m0) ? ezM0 : m0;
-		singular0 = singular0 != null ? singular0 : false;
-
-		final ArrayList<Difficulty> difficultyList = new ArrayList<>();
-		final String s0 = (String) properties.get("Standard_Difficulties");
-		if (s0 != null) {
-			final String s = s0.trim();
-			final String[] bigFields = s.split("\\n+");
-			if (bigFields != null) {
-				final int nFields = bigFields.length;
-				for (int k = 0; k < nFields; ++k) {
-					final String bigField = bigFields[k];
-					final String[] littleFields = bigField.split("\\s+");
-					if (littleFields.length == 3) {
-						Integer m = null;
-						Integer ezM = null;
-						Boolean singular = null;
-						try {
-							m = Integer.parseInt(littleFields[0]);
-							ezM = Integer.parseInt(littleFields[1]);
-							singular = Boolean.parseBoolean(littleFields[2]);
-							difficultyList.add(new Difficulty(m, ezM, singular, difficultyList.size()));
-						} catch (final NumberFormatException e) {
+				if (difficultyList.isEmpty()) {
+					final String s1 = ((String) properties.get("Initial"));
+					if (s1 != null) {
+						final String s = s1.trim();
+						final String[] fields = s.split("\\s+");
+						if (fields.length == 3) {
+							try {
+								final int m = Integer.parseInt(fields[0]);
+								final int ezM = Integer.parseInt(fields[1]);
+								final boolean singular = Boolean.parseBoolean(fields[2]);
+								difficultyList.add(new Difficulty(m, ezM, singular));
+							} catch (final NumberFormatException e) {
+							}
 						}
 					}
 				}
 			}
+		});
+
+		if (difficultyList.isEmpty()) {
+			difficultyList.add(new Difficulty(2, 1, false));
 		}
-		_StandardDifficulties = difficultyList.toArray(new Difficulty[difficultyList.size()]);
-		Arrays.sort(_StandardDifficulties);
-		if (_StandardDifficulties.length > 0) {
-			_InitialDifficulty = _StandardDifficulties[0];
-		} else if (m0 != null && ezM0 != null && singular0 != null) {
-			_InitialDifficulty = new Difficulty(m0, ezM0, singular0, -1);
-		} else {
-			_InitialDifficulty = new Difficulty(2, 1, false, -1);
-		}
+		_GivenDifficulties = difficultyList.toArray(new Difficulty[difficultyList.size()]);
+		Arrays.sort(_GivenDifficulties);
 	}
 
 	@Override
@@ -113,6 +110,10 @@ class Difficulty implements Comparable<Difficulty> {
 	final int _ordinal;
 
 	/** The maximum value for _ezM is _m-1; this gives a triangular matrix. */
+	Difficulty(final int m, final int ezM, final boolean singular) {
+		this(m, ezM, singular, /* ordinal= */0);
+	}
+
 	private Difficulty(final int m, final int ezM, final boolean singular, final int ordinal) {
 		_m = Math.max(1, m);
 		_ezM = Math.max(0, Math.min(_m - 1, ezM));
@@ -120,18 +121,14 @@ class Difficulty implements Comparable<Difficulty> {
 		_ordinal = ordinal;
 	}
 
-	Difficulty(final int m, final int ezM, final boolean singular) {
-		this(m, ezM, singular, -1);
-	}
-
 	Difficulty getHarder() {
-		if (_ordinal < 0 || _StandardDifficulties == null || _StandardDifficulties.length == 0) {
+		if (_GivenDifficulties.length == 1) {
 			return oldGetHarder();
 		}
-		final int nDifficulties = _StandardDifficulties.length;
-		final int glbIdx = CombinatoricTools.getGlbIndex(_StandardDifficulties, this);
+		final int nDifficulties = _GivenDifficulties.length;
+		final int glbIdx = CombinatoricTools.getGlbIndex(_GivenDifficulties, this);
 		for (int k = glbIdx; k < nDifficulties; ++k) {
-			final Difficulty difficulty = _StandardDifficulties[k];
+			final Difficulty difficulty = _GivenDifficulties[k];
 			if (difficulty.compareTo(this) > 0) {
 				return difficulty;
 			}
@@ -140,12 +137,12 @@ class Difficulty implements Comparable<Difficulty> {
 	}
 
 	Difficulty getEasier() {
-		if (_ordinal < 0 || _StandardDifficulties == null || _StandardDifficulties.length == 0) {
+		if (_GivenDifficulties.length == 1) {
 			return oldGetEasier();
 		}
-		final int glbIdx = CombinatoricTools.getGlbIndex(_StandardDifficulties, this);
+		final int glbIdx = CombinatoricTools.getGlbIndex(_GivenDifficulties, this);
 		for (int k = glbIdx; k >= 0; --k) {
-			final Difficulty difficulty = _StandardDifficulties[k];
+			final Difficulty difficulty = _GivenDifficulties[k];
 			if (difficulty.compareTo(this) < 0) {
 				return difficulty;
 			}
@@ -179,33 +176,12 @@ class Difficulty implements Comparable<Difficulty> {
 	}
 
 	public String getString() {
-		final String ordinalString = _ordinal < 0 ? "" : ("," + _ordinal);
-		final String singularString = _singular ? ",Singular" : "";
-		return String.format("[m,ezM]=[%d,%d%s%s]", _m, _ezM, ordinalString, singularString);
+		return String.format("[m,ezM]=[%d,%d%s]", _m, _ezM, _singular ? ",Snglr" : ",NonSnglr");
 	}
 
 	@Override
 	public String toString() {
 		return getString();
-	}
-
-	public static void main0(final String[] args) {
-		for (Difficulty difficulty = _StandardDifficulties[0]; difficulty != null; difficulty = difficulty
-				.getHarder()) {
-			System.out.println(difficulty.getString());
-		}
-	}
-
-	public static void main(final String[] args) {
-		final Class<?> clazz = StaticUtilities.getMyClass();
-		try (InputStream in0 = clazz.getResourceAsStream("Difficulty2.properties")) {
-			final Properties props = new Properties();
-			props.load(in0);
-			props.list(System.out);
-		} catch (final IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 
 }
