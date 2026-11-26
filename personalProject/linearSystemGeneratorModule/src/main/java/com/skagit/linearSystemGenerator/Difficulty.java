@@ -27,7 +27,7 @@ class Difficulty implements Comparable<Difficulty> {
 
 		final ArrayList<Difficulty> difficultyList = new ArrayList<>();
 
-		Stream.of(rsrcs).forEach(rsrc -> {
+		Stream.of(rsrcs).takeWhile(r -> difficultyList.isEmpty()).forEach(rsrc -> {
 			if (difficultyList.isEmpty()) {
 				final Properties properties = new Properties();
 				final Path path = rsrc.getFilePath();

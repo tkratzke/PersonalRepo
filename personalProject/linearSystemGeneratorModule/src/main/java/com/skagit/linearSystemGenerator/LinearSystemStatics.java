@@ -61,17 +61,13 @@ class LinearSystemStatics {
 			}
 		});
 
-		/** Generating linear systems: */
+		/** Generating linear systems, fraction determination, and names: */
 		final long[] seed = { Long.MIN_VALUE };
 		final int[] loMult = { Integer.MIN_VALUE };
 		final int[] hiMult = { Integer.MIN_VALUE };
 		final int[] loNudge = { Integer.MIN_VALUE };
 		final int[] hiNudge = { Integer.MIN_VALUE };
-
-		/** Fraction determination: */
 		final double[] thresholdForFraction = { Double.NaN };
-
-		/** Equation and variable names. */
 		final String[] equtnNamesString = { null };
 		final String[] vblNamesString = { null };
 
@@ -79,71 +75,73 @@ class LinearSystemStatics {
 		final ArrayList<String> forInfeasible = new ArrayList<>();
 		final ArrayList<String> forSolved = new ArrayList<>();
 
-		Stream.of(rsrcs).forEach(rsrc -> {
-			String rltvPath = rsrc._rltvPath;
-			rltvPath = "/" + rltvPath.replace('\\', '/');
-			try (InputStream in = clazz.getResourceAsStream(rltvPath)) {
-				properties.load(in);
-				if (seed[0] == Long.MIN_VALUE) {
-					try {
-						seed[0] = Long.parseLong((String) properties.get("seed"));
-					} catch (final NumberFormatException e) {
-					}
-				}
-				if (loMult[0] == Integer.MIN_VALUE) {
-					try {
-						loMult[0] = Integer.parseInt((String) properties.get("loMult"));
-					} catch (final NumberFormatException e) {
-					}
-				}
-				if (hiMult[0] == Integer.MIN_VALUE) {
-					try {
-						hiMult[0] = Integer.parseInt((String) properties.get("hiMult"));
-					} catch (final NumberFormatException e) {
-					}
-				}
-				if (loNudge[0] == Integer.MIN_VALUE) {
-					try {
-						loNudge[0] = Integer.parseInt((String) properties.get("loNudge"));
-					} catch (final NumberFormatException e) {
-					}
-				}
-				if (hiNudge[0] == Integer.MIN_VALUE) {
-					try {
-						hiNudge[0] = Integer.parseInt((String) properties.get("hiNudge"));
-					} catch (final NumberFormatException e) {
-					}
-				}
-				if (!Double.isFinite(thresholdForFraction[0])) {
-					try {
-						thresholdForFraction[0] = Double.parseDouble((String) properties.get("thresholdForFraction"));
-					} catch (final NumberFormatException e) {
-					}
-				}
-				if (equtnNamesString[0] == null) {
-					equtnNamesString[0] = properties.getProperty("equationNamesString");
-				}
-				if (vblNamesString[0] == null) {
-					vblNamesString[0] = properties.getProperty("variableNamesString");
-				}
+		Stream.of(rsrcs).takeWhile(rsrc -> !isComplete(seed, loMult, hiMult, loNudge, hiNudge, thresholdForFraction,
+				equtnNamesString, vblNamesString)).forEach(rsrc -> {
+					String rltvPath = rsrc._rltvPath;
+					rltvPath = "/" + rltvPath.replace('\\', '/');
+					try (InputStream in = clazz.getResourceAsStream(rltvPath)) {
+						properties.load(in);
+						if (seed[0] == Long.MIN_VALUE) {
+							try {
+								seed[0] = Long.parseLong((String) properties.get("seed"));
+							} catch (final NumberFormatException e) {
+							}
+						}
+						if (loMult[0] == Integer.MIN_VALUE) {
+							try {
+								loMult[0] = Integer.parseInt((String) properties.get("loMult"));
+							} catch (final NumberFormatException e) {
+							}
+						}
+						if (hiMult[0] == Integer.MIN_VALUE) {
+							try {
+								hiMult[0] = Integer.parseInt((String) properties.get("hiMult"));
+							} catch (final NumberFormatException e) {
+							}
+						}
+						if (loNudge[0] == Integer.MIN_VALUE) {
+							try {
+								loNudge[0] = Integer.parseInt((String) properties.get("loNudge"));
+							} catch (final NumberFormatException e) {
+							}
+						}
+						if (hiNudge[0] == Integer.MIN_VALUE) {
+							try {
+								hiNudge[0] = Integer.parseInt((String) properties.get("hiNudge"));
+							} catch (final NumberFormatException e) {
+							}
+						}
+						if (!Double.isFinite(thresholdForFraction[0])) {
+							try {
+								thresholdForFraction[0] = Double
+										.parseDouble((String) properties.get("thresholdForFraction"));
+							} catch (final NumberFormatException e) {
+							}
+						}
+						if (equtnNamesString[0] == null) {
+							equtnNamesString[0] = properties.getProperty("equationNamesString");
+						}
+						if (vblNamesString[0] == null) {
+							vblNamesString[0] = properties.getProperty("variableNamesString");
+						}
 
-				final String sInfeasible = (String) properties.get("Infeasible");
-				if (sInfeasible != null) {
-					final String[] fields = sInfeasible.split("\\n+");
-					if (fields != null) {
-						forInfeasible.addAll(Arrays.asList(fields));
+						final String sInfeasible = (String) properties.get("Infeasible");
+						if (sInfeasible != null) {
+							final String[] fields = sInfeasible.split("\\n+");
+							if (fields != null) {
+								forInfeasible.addAll(Arrays.asList(fields));
+							}
+						}
+						final String sSolved = (String) properties.get("Solved");
+						if (sSolved != null) {
+							final String[] fields = sSolved.split("\\n+");
+							if (fields != null) {
+								forSolved.addAll(Arrays.asList(fields));
+							}
+						}
+					} catch (final IOException e) {
 					}
-				}
-				final String sSolved = (String) properties.get("Solved");
-				if (sSolved != null) {
-					final String[] fields = sSolved.split("\\n+");
-					if (fields != null) {
-						forSolved.addAll(Arrays.asList(fields));
-					}
-				}
-			} catch (final IOException e) {
-			}
-		});
+				});
 		_Seed = seed[0] == Long.MIN_VALUE ? -1L : seed[0];
 		_LoMult = loMult[0] == Integer.MIN_VALUE ? -2 : loMult[0];
 		_HiMult = hiMult[0] == Integer.MIN_VALUE ? 8 : hiMult[0];
@@ -164,6 +162,36 @@ class LinearSystemStatics {
 		}
 		_RemarksForInfeasible = forInfeasible.toArray(new String[forInfeasible.size()]);
 		_RemarksForSolved = forSolved.toArray(new String[forSolved.size()]);
+	}
+
+	static private boolean isComplete(final long[] seed, final int[] loMult, final int[] hiMult, final int[] loNudge,
+			final int[] hiNudge, final double[] thresholdForFraction, final String[] equtnNamesString,
+			final String[] vblNamesString) {
+		if (seed[0] == Long.MIN_VALUE) {
+			return false;
+		}
+		if (loMult[0] == Integer.MIN_VALUE) {
+			return false;
+		}
+		if (hiMult[0] == Integer.MIN_VALUE) {
+			return false;
+		}
+		if (loNudge[0] == Integer.MIN_VALUE) {
+			return false;
+		}
+		if (hiNudge[0] == Integer.MIN_VALUE) {
+			return false;
+		}
+		if (Double.isFinite(thresholdForFraction[0])) {
+			return false;
+		}
+		if (equtnNamesString[0] == null) {
+			return false;
+		}
+		if (vblNamesString[0] == null) {
+			return false;
+		}
+		return true;
 	}
 
 	static String getNominalEqutnName(final int m, final int i) {
