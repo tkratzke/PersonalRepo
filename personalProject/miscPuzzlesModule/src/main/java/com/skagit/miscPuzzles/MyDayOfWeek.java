@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.time.temporal.ChronoField;
+import java.time.temporal.ChronoUnit;
 import java.util.Locale;
 
 /**
@@ -15,8 +16,9 @@ import java.util.Locale;
  */
 
 public class MyDayOfWeek {
+	private static final DateTimeFormatter _Formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-	final private static int[] _KeyDaysOfMonth = new int[] { -1, // Dummy so we can use 1-12 to index this array.
+	final private static int[] _KeyDaysOfMonth = { -1, // Dummy so we can use 1-12 to index this array.
 			31, // (or 32; Last day of January, assuming 32 days in a leap year).
 			28, // (or 29; Last day of February).
 			0, // (Just remember this one).
@@ -31,35 +33,100 @@ public class MyDayOfWeek {
 			12, // (4/4, 6/6, 8/8, 10/10, and 12/12).
 	};
 
-	final private static DayOfWeek[] _Anchors = { DayOfWeek.TUESDAY, DayOfWeek.SUNDAY, DayOfWeek.FRIDAY,
-			DayOfWeek.WEDNESDAY };
+	final private static DayOfWeek[] _Anchors = { //
+			DayOfWeek.TUESDAY, // 2000
+			DayOfWeek.SUNDAY, // 1700
+			DayOfWeek.FRIDAY, // 1800
+			DayOfWeek.WEDNESDAY // 1900
+	};
 
-	/** Monday=1, ... Sunday=7. */
-	public static int GetOneToSeven(final int yyyy, final int oneToTwelve, final int dd) {
+	final LocalDate _localDate;
+	final int _anchorInt;
+	final int _dd;
+	final int _keyDayOfMonth;
+	final int _q, _r0, _r1;
+	final DayOfWeek _answer;
 
-		/** Compute the shift from dayOfMonth. */
-		int keyDayOfMonth = _KeyDaysOfMonth[oneToTwelve];
-		if (oneToTwelve <= 2 && (yyyy % 4 == 0) && (yyyy % 100 != 0 || yyyy % 400 == 0)) {
-			++keyDayOfMonth;
+	private MyDayOfWeek(final LocalDate localDate) {
+		_localDate = localDate;
+		final int yyyy = _localDate.getYear();
+		final int oneToTwelve = _localDate.getMonth().getValue();
+		_dd = _localDate.getDayOfMonth();
+
+		_anchorInt = _Anchors[(yyyy / 100) % 4].get(ChronoField.DAY_OF_WEEK);
+
+		/** Get keyDayOfMonth and the shift due to leap years: */
+		final boolean isLeapYear;
+		if (yyyy % 4 != 0) {
+			isLeapYear = false;
+		} else if (yyyy % 100 == 0) {
+			isLeapYear = yyyy % 400 == 0;
+		} else {
+			isLeapYear = true;
 		}
-		final int dayOfMonthShift = dd - keyDayOfMonth;
+		final boolean needAdjustment = isLeapYear && oneToTwelve <= 2;
+		_keyDayOfMonth = _KeyDaysOfMonth[oneToTwelve] + (needAdjustment ? 1 : 0);
 
-		/** Compute the shift from year within century. */
+		/** Component from year within century: */
 		final int yy = yyyy % 100;
-		final int q1 = yy / 12, r1 = yy % 12, r2 = r1 / 4;
-		final int twelveShift = q1 + r1 + r2;
+		_q = yy / 12;
+		_r0 = yy % 12;
+		_r1 = _r0 / 4;
 
-		/** Use the century anchor and the above two shifts to set oneToSeven. */
-		final int anchor = _Anchors[(yyyy / 100) % 4].get(ChronoField.DAY_OF_WEEK);
-		int oneToSeven = anchor + dayOfMonthShift + twelveShift;
-		oneToSeven = (oneToSeven - 1) % 7 + 1;
-		return oneToSeven + (oneToSeven > 0 ? 0 : 7);
+		/** Grand sum: */
+		final int grandSum0 = _anchorInt + _dd - _keyDayOfMonth + _q + _r0 + _r1;
+		final int grandSum1 = (grandSum0 - 1) % 7 + 1;
+		final int oneToSeven = grandSum1 <= 0 ? (grandSum1 + 7) : grandSum1;
+		_answer = DayOfWeek.of(oneToSeven);
 	}
 
-	private static final DateTimeFormatter _Formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+	private String getString() {
+		final int yyyy = _localDate.getYear();
+		final int oneToTwelve = _localDate.getMonth().getValue();
+		final int dd = _localDate.getDayOfMonth();
+		final String anchor = DayOfWeek.of(_anchorInt).getDisplayName(TextStyle.SHORT, Locale.US);
 
-	public static void main(final String[] args) {
-		final String[] dateStrings = new String[] { "1900-01-01", //
+		return String.format("%s. Anchr[%s] dd/key[%2d/%2d:%d] q/r0,r1[%2d/%2d/%d:%d]:: %s!", //
+				_Formatter.format(_localDate), //
+				anchor, //
+				_dd, _keyDayOfMonth, getDdEffect(yyyy, oneToTwelve, dd), //
+				_q, _r0, _r1, (_q + _r0 + _r1) % 7, //
+				_answer.getDisplayName(TextStyle.SHORT, Locale.US) //
+		);
+	}
+
+	private static int getDdEffect(final int yyyy, final int oneToTwelve, final int dd) {
+		final int keyDayOfMonth = _KeyDaysOfMonth[oneToTwelve];
+		int shift = 0;
+		if (yyyy % 4 == 0 && oneToTwelve <= 2) {
+			if ((yyyy % 100 != 0) || (yyyy % 400 == 0)) {
+				shift = 1;
+			}
+		}
+		return (7 + (dd - keyDayOfMonth - shift) % 7) % 7;
+	}
+
+	@Override
+	public String toString() {
+		return getString();
+	}
+
+	private static void processLocalDate(final LocalDate localDate) {
+		final String dateString = _Formatter.format(localDate);
+		final DayOfWeek dayOfWeek0 = localDate.getDayOfWeek();
+		final MyDayOfWeek myDayOfWeek = new MyDayOfWeek(localDate);
+		final DayOfWeek dayOfWeek1 = myDayOfWeek._answer;
+		System.out.printf("\n%s", myDayOfWeek.getString());
+		if (dayOfWeek0 != dayOfWeek1) {
+			System.err.printf("\nFail: %s yielded %s instead of %s.", dateString,
+					dayOfWeek1.getDisplayName(TextStyle.SHORT, Locale.US),
+					dayOfWeek0.getDisplayName(TextStyle.SHORT, Locale.US));
+		}
+	}
+
+	public static void main0(final String[] args) {
+		final String[] dateStrings = { //
+				"1900-01-01", //
 				"1900-01-02", //
 				"1900-02-28", //
 				"1900-03-01", //
@@ -79,21 +146,19 @@ public class MyDayOfWeek {
 				"2023-03-03", //
 		};
 		final int nDateStrings = dateStrings.length;
-
 		for (int k = 0; k < nDateStrings; ++k) {
 			final String dateString = dateStrings[k];
 			final LocalDate localDate = LocalDate.parse(dateString, _Formatter);
-			final DayOfWeek dayOfWeek0 = localDate.getDayOfWeek();
-			final DayOfWeek dayOfWeek1 = DayOfWeek.of(GetOneToSeven( //
-					localDate.getYear(), localDate.getMonth().getValue(), localDate.getDayOfMonth() //
-			));
-			if (dayOfWeek0 != dayOfWeek1) {
-				System.err.printf("\nFail: %s yielded %s instead of %s.", dateString,
-						dayOfWeek1.getDisplayName(TextStyle.FULL, Locale.US),
-						dayOfWeek0.getDisplayName(TextStyle.FULL, Locale.US));
-			} else {
-				System.out.printf("\n%s: %s.", dateString, dayOfWeek1.getDisplayName(TextStyle.FULL, Locale.US));
-			}
+			processLocalDate(localDate);
+		}
+	}
+
+	public static void main(final String[] args) {
+		final LocalDate startDate = LocalDate.of(1900, 1, 1);
+		final LocalDate endDate = LocalDate.now();
+		final long nDays = ChronoUnit.DAYS.between(startDate, endDate);
+		for (long k = 0; k <= nDays; k++) {
+			processLocalDate(startDate.plusDays(k));
 		}
 	}
 }

@@ -4,6 +4,11 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
+  <parent>
+    <groupId>com.skagit</groupId>
+    <artifactId>utilsProject</artifactId>
+    <version>1.0</version>
+  </parent>
 	<groupId>com.skagit</groupId>
 	<artifactId>personalProject</artifactId>
 	<version>1.0</version>
@@ -15,7 +20,7 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.release>21</maven.compiler.release>
-		<utilsProject.version>1.0</utilsProject.version>
+	<utilsProject.version>1.0</utilsProject.version>
 		<personalProject.version>1.0</personalProject.version>
 	</properties>
 

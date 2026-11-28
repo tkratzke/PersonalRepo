@@ -8,8 +8,6 @@ import java.util.BitSet;
 import java.util.Comparator;
 import java.util.TreeMap;
 
-import com.skagit.utils.PermutationTools;
-
 public class SudokuStatics {
 
 	public static <T extends NamedEntity> T[] augmentArray(final T[] oldArray, final T newT) {
@@ -172,98 +170,4 @@ public class SudokuStatics {
 		ps.print(s);
 	}
 
-	public static int[] getPrimeFactors(final int n) {
-		final int sqrt = (int) Math.floor(Math.sqrt(n));
-		final ArrayList<Integer> primeFactorList = new ArrayList<>();
-		final BitSet primes = new BitSet(sqrt + 3);
-		primes.set(2, sqrt + 2);
-		for (int bit = 2; bit >= 0; bit = primes.nextSetBit(bit + 1)) {
-			for (int k = 2 * bit; k <= sqrt; k += bit) {
-				primes.clear(k);
-			}
-		}
-		int n1 = n;
-		for (int prime = primes.nextSetBit(2); prime >= 0; prime = primes.nextSetBit(prime + 1)) {
-			while (n1 % prime == 0) {
-				primeFactorList.add(prime);
-				n1 /= prime;
-			}
-		}
-		final int nFactors0 = primeFactorList.size();
-		if (nFactors0 == 0) {
-			primeFactorList.add(n);
-		}
-		final int nPrimeFactors = primeFactorList.size();
-		final int[] primeFactors = new int[nPrimeFactors];
-		for (int k = 0; k < nPrimeFactors; ++k) {
-			primeFactors[k] = primeFactorList.get(k);
-		}
-		return primeFactors;
-	}
-
-	public static int[] getAllFactors(final int n) {
-		final int[] primeFactors = getPrimeFactors(n);
-		final int nPrimeFactors = primeFactors.length;
-		final ArrayList<Integer> listOfFactors = new ArrayList<>();
-		final int[] subset = new int[nPrimeFactors];
-		Arrays.fill(subset, nPrimeFactors);
-		while (PermutationTools.lexicographicalNextSet(subset) != 0) {
-			int product = 1;
-			for (int k = 0; k < nPrimeFactors; ++k) {
-				final int kk = subset[k];
-				if (kk < nPrimeFactors) {
-					final int primeFactor = primeFactors[kk];
-					product *= primeFactor;
-				}
-			}
-			listOfFactors.add(product);
-		}
-		final int nFactors = listOfFactors.size();
-		final int[] factors = new int[nFactors];
-		for (int k = 0; k < nFactors; ++k) {
-			factors[k] = listOfFactors.get(k);
-		}
-		Arrays.sort(factors);
-		return factors;
-	}
-
-	/**
-	 * <pre>
-	 * Strings and ints are default shoved to the right.
-	 *   OFFSET_T dash in front of the number shoves them both to the left.
-	 * </pre>
-	 */
-	public static void main(final String[] args) {
-		final int[] allFactors = getAllFactors(2025);
-		for (int k = 0; k < allFactors.length; ++k) {
-			System.out.println(allFactors[k]);
-		}
-		System.exit(33);
-		final int[] primeFactors = getPrimeFactors(2025);
-		final int nPrimeFactors = primeFactors.length;
-		final int[] subset = new int[nPrimeFactors];
-		Arrays.fill(subset, nPrimeFactors);
-		while (PermutationTools.lexicographicalNextSet(subset) != 0) {
-			final StringBuilder sb1 = new StringBuilder();
-			final StringBuilder sb2 = new StringBuilder();
-			int product = 1;
-			for (int k = 0; k < nPrimeFactors; ++k) {
-				final int kk = subset[k];
-				if (kk < nPrimeFactors) {
-					final int primeFactor = primeFactors[kk];
-					product *= primeFactor;
-					sb2.append(String.format("%s%d", k == 0 ? "{" : ",", primeFactor));
-				}
-				sb1.append(String.format("%s%d%s", k == 0 ? "\n{" : ",", subset[k], k == nPrimeFactors - 1 ? "}" : ""));
-			}
-			sb2.append(String.format("}: %d", product));
-			System.out.print(sb1.toString());
-			System.out.printf(": %s", sb2.toString());
-		}
-		System.exit(0);
-		final String s = "";
-		System.out.printf("|%5s|", s);
-		final int k = 123;
-		System.out.printf("\n|%-5d|", k);
-	}
 }
